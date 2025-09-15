@@ -1,0 +1,37 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/OpenDyslexic-BoldItalic_2748562162.otf",
+      "sha1": "4c74efc958ef19d8dce66e1a255d339a3b5c7539"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexic-Bold_4192668054.otf",
+      "sha1": "e5baebdc413f19b2e3c3eb03eb82cb4428d2b311"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexic-Italic_2758667117.otf",
+      "sha1": "6998a387264085eb80a39c60408efaf88ed8346e"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexicAlta-BoldItalic_3501229432.otf",
+      "sha1": "6b17be2a23c206ea35608e33ca63857e6e4e4670"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexicAlta-Bold_2996475932.otf",
+      "sha1": "46619a465c80bf003a70bc7530d9920a403d1cbe"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexicAlta-Italic_2636942835.otf",
+      "sha1": "43e0ba77614dbd4cbf7f9becf2b21b20d0aaae1c"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexicAlta-Regular_3900816240.otf",
+      "sha1": "15e20bdb7cc0143abe481973620a8dd354071eff"
+    },
+    {
+      "path": "assets/fonts/OpenDyslexicMono-Regular_1062049671.otf",
+      "sha1": "933f9c89774ebddf7cd49a592590f55e8042b3a4"
+    }
+  ]
+}
