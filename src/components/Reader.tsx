@@ -20,6 +20,7 @@ type Props = {
   onAdjustSelectedWordSpacing?: (delta: number) => void;
   onAdjustFontSize?: (delta: number) => void;
   onResetSelectedWordSpacing?: () => void;
+  onResetWordSpacingByIndex?: (index: number) => void;
 };
 
 // Default hard letters (will be overridden by config)
@@ -50,6 +51,7 @@ export const Reader: React.FC<Props> = ({
   onAdjustSelectedWordSpacing,
   onAdjustFontSize,
   onResetSelectedWordSpacing,
+  onResetWordSpacingByIndex,
 }) => {
   const words = useMemo(() => splitIntoWords(text), [text]);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
@@ -59,7 +61,7 @@ export const Reader: React.FC<Props> = ({
     const hardLetters = (config.hardLetters || DEFAULT_HARD_LETTERS).normalize('NFC');
     return new Set(Array.from(hardLetters));
   }, [config.hardLetters]);
-  const gestureStateRef = useRef<{ lastPinchDistance: number | null; lastTapTs: number | null } | null>({ lastPinchDistance: null, lastTapTs: null });
+  const gestureStateRef = useRef<{ lastPinchDistance: number | null; lastTapTs: number | null; lastTapWordIndex: number | null; isPinching: boolean; pinchEndTs: number | null; touchStartX: number | null; touchStartY: number | null; movedBeyondTap: boolean } | null>({ lastPinchDistance: null, lastTapTs: null, lastTapWordIndex: null, isPinching: false, pinchEndTs: null, touchStartX: null, touchStartY: null, movedBeyondTap: false });
   const containerRef = useRef<View | null>(null);
   const containerPageOffsetRef = useRef<{pageX: number; pageY: number}>({pageX: 0, pageY: 0});
   const wordLayoutsRef = useRef<Record<number, {x: number; y: number; width: number; height: number}>>({});
@@ -72,6 +74,48 @@ export const Reader: React.FC<Props> = ({
     } else {
       setSelectedWordIndex(index);
       onSelectWordIndex && onSelectWordIndex(index);
+    }
+  }
+
+  function handleWordTouchEnd(index: number) {
+    const now = Date.now();
+    // If a multi-touch pinch just happened, ignore touch end to avoid accidental selection
+    if (gestureStateRef.current?.isPinching) {
+      return;
+    }
+    // Cooldown after pinch release: ignore taps within 300ms
+    const pinchEndTs = gestureStateRef.current?.pinchEndTs ?? null;
+    if (pinchEndTs && now - pinchEndTs < 300) {
+      return;
+    }
+    // If the finger moved like a scroll, ignore
+    if (gestureStateRef.current?.movedBeyondTap) {
+      if (gestureStateRef.current) {
+        gestureStateRef.current.movedBeyondTap = false;
+        gestureStateRef.current.touchStartX = null;
+        gestureStateRef.current.touchStartY = null;
+      }
+      return;
+    }
+    const lastTapTs = gestureStateRef.current?.lastTapTs ?? null;
+    const lastTapWordIndex = gestureStateRef.current?.lastTapWordIndex ?? null;
+    // Detect double tap on the same word within 250ms
+    if (lastTapWordIndex === index && lastTapTs && now - lastTapTs < 250) {
+      // Reset spacing for this word without toggling selection
+      if (onResetWordSpacingByIndex) {
+        onResetWordSpacingByIndex(index);
+      }
+      if (gestureStateRef.current) {
+        gestureStateRef.current.lastTapTs = null;
+        gestureStateRef.current.lastTapWordIndex = null;
+      }
+      return;
+    }
+    // Single tap behavior: toggle selection
+    handleWordPress(index);
+    if (gestureStateRef.current) {
+      gestureStateRef.current.lastTapTs = now;
+      gestureStateRef.current.lastTapWordIndex = index;
     }
   }
 
@@ -115,6 +159,12 @@ export const Reader: React.FC<Props> = ({
         onStartShouldSetPanResponder: (evt) => {
           const touches = evt.nativeEvent.touches;
           return touches && touches.length >= 2;
+        },
+        onPanResponderGrant: (_evt) => {
+          if (gestureStateRef.current) {
+            gestureStateRef.current.isPinching = true;
+            gestureStateRef.current.lastPinchDistance = null;
+          }
         },
         onMoveShouldSetPanResponder: (evt) => {
           const touches = evt.nativeEvent.touches;
@@ -165,17 +215,8 @@ export const Reader: React.FC<Props> = ({
         onPanResponderRelease: (evt) => {
           if (gestureStateRef.current) {
             gestureStateRef.current.lastPinchDistance = null;
-            const now = Date.now();
-            const lastTapTs = gestureStateRef.current.lastTapTs;
-            // Treat quick two taps as double tap reset
-            if (lastTapTs && now - lastTapTs < 250) {
-              if (selectedWordIndex != null && onResetSelectedWordSpacing) {
-                onResetSelectedWordSpacing();
-              }
-              gestureStateRef.current.lastTapTs = null;
-            } else {
-              gestureStateRef.current.lastTapTs = now;
-            }
+            gestureStateRef.current.isPinching = false;
+            gestureStateRef.current.pinchEndTs = Date.now();
           }
         },
         onPanResponderTerminationRequest: () => false, // Don't terminate easily, but allow scroll
@@ -194,7 +235,32 @@ export const Reader: React.FC<Props> = ({
           onLayout={(e) => {
             wordLayoutsRef.current[index] = e.nativeEvent.layout;
           }}
-          onTouchEnd={() => handleWordPress(index)}
+          onTouchStart={(e) => {
+            const touches: any = (e as any).nativeEvent?.touches;
+            if (touches && touches.length > 1) {
+              // multi-touch, let pinch handler manage
+              return;
+            }
+            const nx: any = (e as any).nativeEvent?.pageX;
+            const ny: any = (e as any).nativeEvent?.pageY;
+            if (gestureStateRef.current) {
+              gestureStateRef.current.touchStartX = typeof nx === 'number' ? nx : null;
+              gestureStateRef.current.touchStartY = typeof ny === 'number' ? ny : null;
+              gestureStateRef.current.movedBeyondTap = false;
+            }
+          }}
+          onTouchMove={(e) => {
+            const nx: any = (e as any).nativeEvent?.pageX;
+            const ny: any = (e as any).nativeEvent?.pageY;
+            if (gestureStateRef.current && gestureStateRef.current.touchStartX != null && gestureStateRef.current.touchStartY != null) {
+              const dx = Math.abs(nx - gestureStateRef.current.touchStartX);
+              const dy = Math.abs(ny - gestureStateRef.current.touchStartY);
+              if (dx > 6 || dy > 6) {
+                gestureStateRef.current.movedBeyondTap = true;
+              }
+            }
+          }}
+          onTouchEnd={() => handleWordTouchEnd(index)}
           style={{
             flexDirection: 'row',
             marginRight: config.wordSpacing,
@@ -248,24 +314,26 @@ export const Reader: React.FC<Props> = ({
       {...panResponder.panHandlers}
     >
       <ScrollView 
-        contentContainerStyle={{padding: 16, flexGrow: 1}}
+        contentContainerStyle={{ flexGrow: 1}}
         showsVerticalScrollIndicator={true}
         bounces={true}
       >
-        <View style={{flexDirection: 'row', flexWrap: 'wrap', minHeight: '100%'}}>
-          {renderedWords}
+        <View style={{flex: 1, justifyContent: 'space-between'}}>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+            {renderedWords}
+          </View>
+          <Text 
+            style={{height: 100, justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
+            onPress={() => {
+              setSelectedWordIndex(null);
+              onSelectWordIndex && onSelectWordIndex(null);
+            }}
+          >
+            {selectedWordIndex != null
+              ? 'Selected word is highlighted in BLUE. Pinch OUT to zoom letters, Pinch IN to shrink. Tap here to deselect.'
+              : 'TAP any word to select it (blue highlight), then PINCH to adjust its letter spacing. Pinch in empty space for global font size.'}
+          </Text>
         </View>
-        <Text 
-          style={{height: 100, justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
-          onPress={() => {
-            setSelectedWordIndex(null);
-            onSelectWordIndex && onSelectWordIndex(null);
-          }}
-        >
-          {selectedWordIndex != null
-            ? 'Selected word is highlighted in BLUE. Pinch OUT to zoom letters, Pinch IN to shrink. Tap here to deselect.'
-            : 'TAP any word to select it (blue highlight), then PINCH to adjust its letter spacing. Pinch in empty space for global font size.'}
-        </Text>
       </ScrollView>
     </View>
   );
