@@ -6,7 +6,6 @@
  */
 
 import React, {useMemo, useState, useCallback, useRef, useEffect} from 'react';
-import type {PropsWithChildren} from 'react';
 import {
   StatusBar,
   StyleSheet,
@@ -16,7 +15,7 @@ import {
   View,
   SafeAreaView,
   ScrollView,
-  Dimensions,
+  Pressable,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,36 +25,6 @@ import Reader, {ReaderConfig} from './src/components/Reader';
 import SidePanel from './src/components/SidePanel';
 import {setBrightness as setNativeBrightness} from './src/native/Brightness';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -63,13 +32,10 @@ function App(): React.JSX.Element {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-  // Get device dimensions for 50% height calculation
-  const screenHeight = Dimensions.get('window').height;
-  const halfScreenHeight = screenHeight * 0.5;
-
   const [inputText, setInputText] = useState<string>('');
   const [perWordSpacingOverrides, setPerWordSpacingOverrides] = useState<Record<number, number>>({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isPanelVisible, setIsPanelVisible] = useState<boolean>(false);
   const [config, setConfig] = useState<ReaderConfig>({
     fontFamily: undefined,
     backgroundColor: '#FFFFFF',
@@ -248,9 +214,8 @@ function App(): React.JSX.Element {
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <SafeAreaView style={{flex: 1, backgroundColor: config.backgroundColor}}>
-        <View style={{flex: 1, flexDirection: 'row'}}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
-        <View style={{flex: 1, backgroundColor: config.backgroundColor}}>
+        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
           <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
             <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
             <ScrollView style={{maxHeight: 200}}>
@@ -263,20 +228,37 @@ function App(): React.JSX.Element {
               />
             </ScrollView>
           </View>
-          <Reader
-            text={inputText}
-            config={config}
-            perWordSpacingOverrides={perWordSpacingOverrides}
-            onSelectWordIndex={(idx) => setSelectedIndex(idx)}
-            onAdjustSelectedWordSpacing={(delta) => {
-              if (selectedIndex != null) updatePerWordSpacing(selectedIndex, delta);
-            }}
-            onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
-            onResetSelectedWordSpacing={resetSelectedWordSpacing}
-          />
+          <View style={{flex: 1, padding: 12}}>
+            <Reader
+              text={inputText}
+              config={config}
+              perWordSpacingOverrides={perWordSpacingOverrides}
+              onSelectWordIndex={(idx) => setSelectedIndex(idx)}
+              onAdjustSelectedWordSpacing={(delta) => {
+                if (selectedIndex != null) updatePerWordSpacing(selectedIndex, delta);
+              }}
+              onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
+              onResetSelectedWordSpacing={resetSelectedWordSpacing}
+            />
+          </View>
           <View style={overlayStyle} />
         </View>
+
+        {/* Floating Settings Button */}
+        <Pressable
+          onPress={() => setIsPanelVisible(true)}
+          style={styles.settingsButton}
+        >
+          <View style={{width: 26, height: 20, justifyContent: 'space-between', alignItems: 'center'}}>
+            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
+            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
+            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
+          </View>
+        </Pressable>
+
         <SidePanel
+          visible={isPanelVisible}
+          onClose={() => setIsPanelVisible(false)}
           fontFamily={config.fontFamily}
           onChangeFontFamily={handleChangeFontFamily}
           backgroundColor={config.backgroundColor}
@@ -297,28 +279,31 @@ function App(): React.JSX.Element {
           onChangeBrightness={handleChangeBrightness}
           onSave={handleSaveConfiguration}
         />
-        </View>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  settingsButton: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
   },
 });
 
