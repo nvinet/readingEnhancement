@@ -32,5 +32,3 @@ RCT_REMAP_METHOD(getBrightness,
 }
 
 @end
-
-

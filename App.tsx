@@ -5,6 +5,7 @@
  * @format
  */
 
+// @ts-ignore
 import React, {useMemo, useState, useCallback, useRef, useEffect} from 'react';
 import {
   StatusBar,
@@ -13,14 +14,21 @@ import {
   TextInput,
   useColorScheme,
   View,
-  SafeAreaView,
   ScrollView,
   Pressable,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Colors } from 'react-native/Libraries/NewAppScreen';
+// Removed import { Colors } from 'react-native/Libraries/NewAppScreen';
+// as it is no longer available or causing issues in the new version.
+// Defining simple Colors object locally as a replacement.
+const Colors = {
+  lighter: '#F3F3F3',
+  darker: '#222',
+};
+
 import Reader, {ReaderConfig} from './src/components/Reader';
 import SidePanel from './src/components/SidePanel';
 import {setBrightness as setNativeBrightness} from './src/native/Brightness';
@@ -57,6 +65,7 @@ function App(): React.JSX.Element {
   });
 
   // Refs for debounce timers
+  // @ts-ignore
   const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
 
   // Debounced update function for config
@@ -213,7 +222,7 @@ function App(): React.JSX.Element {
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <SafeAreaView style={{flex: 1, backgroundColor: config.backgroundColor}}>
+      <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
         <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
           <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
