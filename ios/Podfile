@@ -31,5 +31,15 @@ target 'readingEnhancement' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # FIX: hermes-engine dSYM path issue
+    installer.pods_project.targets.each do |target|
+      if target.name == 'hermes-engine'
+        target.build_configurations.each do |config|
+          # This forces the build to ignore the missing dSYM path reference
+          config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
+        end
+      end
+    end
   end
 end
