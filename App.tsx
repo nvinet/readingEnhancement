@@ -9,15 +9,13 @@
 import React, {useMemo, useState, useCallback, useRef, useEffect} from 'react';
 import {
   StatusBar,
-  StyleSheet,
   Text,
   TextInput,
   useColorScheme,
   View,
   ScrollView,
-  Pressable,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -31,9 +29,10 @@ const Colors = {
 
 import Reader, {ReaderConfig} from './src/components/Reader';
 import SidePanel from './src/components/SidePanel';
+import SettingsButton from './src/components/SettingsButton';
 import {setBrightness as setNativeBrightness} from './src/native/Brightness';
 
-function App(): React.JSX.Element {
+function App(){
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -168,12 +167,14 @@ function App(): React.JSX.Element {
             if (typeof parsed.brightness === 'number') {
               setBrightness(parsed.brightness);
               setLiveValues((prev) => ({...prev, brightness: parsed.brightness}));
-              try { setNativeBrightness(parsed.brightness); } catch (e) { /* noop */ }
+              try { setNativeBrightness(parsed.brightness); } catch (e) { 
+                console.log(e)
+              }
             }
           }
         }
       } catch (e) {
-        // ignore
+        console.log(e)
       }
     })();
   }, []);
@@ -186,7 +187,7 @@ function App(): React.JSX.Element {
       });
       await AsyncStorage.setItem('reader_config_v1', payload);
     } catch (e) {
-      // ignore
+      console.log(e)
     }
   }, [config, brightness]);
 
@@ -216,15 +217,17 @@ function App(): React.JSX.Element {
     // Debounce brightness and native updates
     debouncedUpdateConfig('brightness', v, () => {
       setBrightness(v);
-      try { setNativeBrightness(v); } catch (e) { /* noop */ }
+      try { setNativeBrightness(v); } catch (e) { 
+        console.log(e)}
     });
   }, [debouncedUpdateConfig]);
 
   return (
-    <GestureHandlerRootView style={{flex: 1}}>
-      <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{flex: 1}}>
+        <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
-        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
+        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 20}}>
           <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
             <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
             <ScrollView style={{maxHeight: 200}}>
@@ -253,17 +256,7 @@ function App(): React.JSX.Element {
           <View style={overlayStyle} />
         </View>
 
-        {/* Floating Settings Button */}
-        <Pressable
-          onPress={() => setIsPanelVisible(true)}
-          style={styles.settingsButton}
-        >
-          <View style={{width: 26, height: 20, justifyContent: 'space-between', alignItems: 'center'}}>
-            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
-            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
-            <View style={{width: '100%', height: 3, backgroundColor: 'white', borderRadius: 2}} />
-          </View>
-        </Pressable>
+        <SettingsButton onPress={() => setIsPanelVisible(true)} />
 
         <SidePanel
           visible={isPanelVisible}
@@ -290,30 +283,8 @@ function App(): React.JSX.Element {
         />
       </SafeAreaView>
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  settingsButton: {
-    position: 'absolute',
-    top: 50,
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#1976D2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
-  },
-});
 
 export default App;

@@ -323,7 +323,7 @@ export const Reader: React.FC<Props> = ({
             {renderedWords}
           </View>
           <Text 
-            style={{height: 100, justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
+            style={{justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
             onPress={() => {
               setSelectedWordIndex(null);
               onSelectWordIndex && onSelectWordIndex(null);
