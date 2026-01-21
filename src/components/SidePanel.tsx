@@ -29,6 +29,7 @@ export type SidePanelProps = {
   brightness: number; // 0-1 overlay darkness
   onChangeBrightness: (v: number) => void;
   onSave: () => void;
+  onResetAllWordSpacings: () => void;
 };
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -53,6 +54,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   brightness,
   onChangeBrightness,
   onSave,
+  onResetAllWordSpacings,
 }) => {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -247,6 +249,21 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               max={50}
               step={1}
             />
+
+            <View style={{marginBottom: 12}}>
+              <TouchableOpacity
+                onPress={onResetAllWordSpacings}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  backgroundColor: '#ef5350',
+                  borderRadius: 8,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <Text style={{color: 'white', fontWeight: '600'}}>Reset Custom Spacings</Text>
+              </TouchableOpacity>
+            </View>
 
             <MemoizedSliderField
               label="Base font size"

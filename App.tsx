@@ -98,6 +98,10 @@ function App(){
     });
   }
 
+  function resetAllWordSpacings() {
+    setPerWordSpacingOverrides({});
+  }
+
   const overlayStyle = useMemo(() => ({
     backgroundColor: `rgba(0,0,0,${liveValues.brightness})`,
     position: 'absolute' as const,
@@ -227,7 +231,7 @@ function App(){
       <GestureHandlerRootView style={{flex: 1}}>
         <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
-        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 20}}>
+        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
           <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
             <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
             <ScrollView style={{maxHeight: 200}}>
@@ -236,7 +240,7 @@ function App(){
                 onChangeText={setInputText}
                 multiline
                 placeholder="Paste text here..."
-                style={{minHeight: 96, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA'}}
+                style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
               />
             </ScrollView>
           </View>
@@ -280,6 +284,7 @@ function App(){
           brightness={liveValues.brightness}
           onChangeBrightness={handleChangeBrightness}
           onSave={handleSaveConfiguration}
+          onResetAllWordSpacings={resetAllWordSpacings}
         />
       </SafeAreaView>
     </GestureHandlerRootView>
