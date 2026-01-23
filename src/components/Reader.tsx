@@ -2,7 +2,7 @@ import React, {useMemo, useState, useRef} from 'react';
 import {Text, View, StyleSheet, Pressable} from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import TextTicker, { TextTickerHandle } from './TextTicker';
-import Controller from './Controller';
+import Controller, { ControllerHandle } from './Controller';
 
 export type ReaderConfig = {
   fontFamily: string | undefined;
@@ -138,6 +138,7 @@ export const Reader: React.FC<Props> = ({
   const lastScale = useRef(1);
   const speed = useSharedValue(0);
   const tickerRef = useRef<TextTickerHandle>(null);
+  const controllerRef = useRef<ControllerHandle>(null);
   
   // Create a Set of hard letters from the config
   const hardLettersSet = useMemo(() => {
@@ -179,6 +180,7 @@ export const Reader: React.FC<Props> = ({
           onSelect={(idx) => {
             setSelectedWordIndex(idx);
             onSelectWordIndex?.(idx);
+            controllerRef.current?.resetSpeed();
           }}
           onReset={onResetWordScaleByIndex}
         />
@@ -205,7 +207,7 @@ export const Reader: React.FC<Props> = ({
           {renderedWords}
         </TextTicker>
       </View>
-      <Controller speed={speed} onReset={() => tickerRef.current?.reset()} />
+      <Controller ref={controllerRef} speed={speed} onReset={() => tickerRef.current?.reset()} />
       <Text 
             style={{justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
           >

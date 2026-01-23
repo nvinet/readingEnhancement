@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, clamp, SharedValue } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -8,15 +8,26 @@ type ControllerProps = {
   onReset: () => void;
 };
 
+export interface ControllerHandle {
+  resetSpeed: () => void;
+}
+
 const SLIDER_WIDTH = 200;
 const SLIDER_CENTER = SLIDER_WIDTH / 2;
 const MAX_SPEED = 8; // Pixels per frame
 
-const Controller: React.FC<ControllerProps> = ({ speed, onReset }) => {
+const Controller = forwardRef<ControllerHandle, ControllerProps>(({ speed, onReset }, ref) => {
   // Visual position of the thumb (0 to SLIDER_WIDTH)
   // Center (SLIDER_WIDTH / 2) corresponds to speed 0
   const thumbPosition = useSharedValue(SLIDER_WIDTH / 2);
   const startX = useSharedValue(0);
+
+  useImperativeHandle(ref, () => ({
+    resetSpeed: () => {
+      speed.value = 0;
+      thumbPosition.value = SLIDER_CENTER;
+    }
+  }));
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -76,7 +87,7 @@ const Controller: React.FC<ControllerProps> = ({ speed, onReset }) => {
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
