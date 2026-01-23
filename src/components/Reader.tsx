@@ -93,7 +93,10 @@ export const Reader: React.FC<Props> = ({
       return (
         <Pressable
           key={index}
-          onPress={() => setSelectedWordIndex(index)}
+          onPress={() => {
+            setSelectedWordIndex(index);
+            onSelectWordIndex?.(index);
+          }}
           style={{
             flexDirection: 'row',
             marginRight: config.wordSpacing,
@@ -140,12 +143,15 @@ export const Reader: React.FC<Props> = ({
         </Pressable>
       );
     });
-  }, [words, config, perWordSpacingOverrides, hardLettersSet, selectedWordIndex]);
+  }, [words, config, perWordSpacingOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex]);
 
   return (
     <Pressable 
       style={[styles.container, {backgroundColor: config.backgroundColor}]}
-      onPress={() => setSelectedWordIndex(null)}
+      onPress={() => {
+        setSelectedWordIndex(null);
+        onSelectWordIndex?.(null);
+      }}
     >
       <View style={styles.band}>
         <TextTicker 

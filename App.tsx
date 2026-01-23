@@ -14,6 +14,8 @@ import {
   useColorScheme,
   View,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -66,6 +68,7 @@ function App(){
   // Refs for debounce timers
   // @ts-ignore
   const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
+  const textInputRef = useRef<TextInput>(null);
 
   // Debounced update function for config
   const debouncedUpdateConfig = useCallback((key: string, value: number, updateFn: () => void) => {
@@ -231,36 +234,47 @@ function App(){
       <GestureHandlerRootView style={{flex: 1}}>
         <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
-        <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
-          <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
-            <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
-            <ScrollView style={{maxHeight: 200}}>
-              <TextInput
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                placeholder="Paste text here..."
-                style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
+            <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
+              <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
+              <ScrollView style={{maxHeight: 200}} keyboardShouldPersistTaps="handled">
+                <TextInput
+                  ref={textInputRef}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  placeholder="Paste text here..."
+                  style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
+                />
+              </ScrollView>
+            </View>
+            <View style={{flex: 1, padding: 12}}>
+              <Reader
+                text={inputText}
+                config={config}
+                perWordSpacingOverrides={perWordSpacingOverrides}
+                onSelectWordIndex={(idx) => {
+                  if (idx === null) {
+                    Keyboard.dismiss();
+                  }
+                  setSelectedIndex(idx);
+                }}
+                onAdjustSelectedWordSpacing={(delta) => {
+                  if (selectedIndex != null) updatePerWordSpacing(selectedIndex, delta);
+                }}
+                onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
+                onResetSelectedWordSpacing={resetSelectedWordSpacing}
               />
-            </ScrollView>
+            </View>
+            <View style={overlayStyle} />
           </View>
-          <View style={{flex: 1, padding: 12}}>
-            <Reader
-              text={inputText}
-              config={config}
-              perWordSpacingOverrides={perWordSpacingOverrides}
-              onSelectWordIndex={(idx) => setSelectedIndex(idx)}
-              onAdjustSelectedWordSpacing={(delta) => {
-                if (selectedIndex != null) updatePerWordSpacing(selectedIndex, delta);
-              }}
-              onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
-              onResetSelectedWordSpacing={resetSelectedWordSpacing}
-            />
-          </View>
-          <View style={overlayStyle} />
-        </View>
+        </TouchableWithoutFeedback>
 
-        <SettingsButton onPress={() => setIsPanelVisible(true)} />
+        <SettingsButton onPress={() => {
+          textInputRef.current?.blur();
+          setIsPanelVisible(true);
+        }} />
 
         <SidePanel
           visible={isPanelVisible}
