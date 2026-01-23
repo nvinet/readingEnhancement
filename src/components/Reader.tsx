@@ -16,12 +16,12 @@ export type ReaderConfig = {
 type Props = {
   text: string;
   config: ReaderConfig;
-  perWordSpacingOverrides: Record<number, number>; // wordIndex -> extra px per character
+  perWordFontSizeOverrides: Record<number, number>; // wordIndex -> extra px for font size
   onSelectWordIndex?: (index: number | null) => void;
-  onAdjustSelectedWordSpacing?: (delta: number) => void;
+  onAdjustSelectedWordScale?: (delta: number) => void;
   onAdjustFontSize?: (delta: number) => void;
-  onResetSelectedWordSpacing?: () => void;
-  onResetWordSpacingByIndex?: (index: number) => void;
+  onResetSelectedWordScale?: () => void;
+  onResetWordScaleByIndex?: (index: number) => void;
 };
 
 // Default hard letters (will be overridden by config)
@@ -47,9 +47,9 @@ function findDoubleLetterIndices(word: string): number[] {
 export const Reader: React.FC<Props> = ({
   text,
   config,
-  perWordSpacingOverrides,
+  perWordFontSizeOverrides,
   onSelectWordIndex,
-  onAdjustSelectedWordSpacing,
+  onAdjustSelectedWordScale,
   onAdjustFontSize
 }) => {
   const words = useMemo(() => splitIntoWords(text), [text]);
@@ -71,9 +71,9 @@ export const Reader: React.FC<Props> = ({
     lastScale.current = scale;
     
     if (selectedWordIndex !== null) {
-      if (onAdjustSelectedWordSpacing) {
+      if (onAdjustSelectedWordScale) {
         // Adjust sensitivity: delta is small (e.g. 0.05), spacing is px.
-        onAdjustSelectedWordSpacing(delta * 20); 
+        onAdjustSelectedWordScale(delta * 20); 
       }
     } else {
       if (onAdjustFontSize) {
@@ -85,10 +85,11 @@ export const Reader: React.FC<Props> = ({
   const renderedWords = useMemo(() => {
     return words.map((word, index) => {
       const doubleIndices = findDoubleLetterIndices(word);
-      const perCharExtra = perWordSpacingOverrides[index] || 0;
+      const fontSizeDelta = perWordFontSizeOverrides[index] || 0;
       const chars = word.split('');
       const isSelected = selectedWordIndex === index;
-      const hasCustomSpacing = perCharExtra !== 0;
+      const hasCustomScale = fontSizeDelta !== 0;
+      const effectiveFontSize = Math.max(5, config.baseFontSize + fontSizeDelta);
 
       return (
         <Pressable
@@ -102,14 +103,15 @@ export const Reader: React.FC<Props> = ({
             marginRight: config.wordSpacing,
             alignItems: 'center',
             backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.2)' : 'transparent',
-            borderRadius: 4,
+            borderRadius: isSelected ? 100 : 4,
+            paddingHorizontal: isSelected ? 20 : 0,
+            paddingVertical: isSelected ? 10 : 0,
           }}
         >
           {chars.map((ch, i) => {
             const isDoubleColored = doubleIndices.includes(i);
             const isHard = hardLettersSet.has(ch);
             const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
-            const gestureSpacing = perCharExtra;
             
             return (
               <Text
@@ -117,17 +119,15 @@ export const Reader: React.FC<Props> = ({
                 style={{
                   color: isDoubleColored ? config.doubleLetterColor : config.textColor,
                   fontFamily: config.fontFamily,
-                  fontSize: config.baseFontSize,
+                  fontSize: effectiveFontSize,
                   marginHorizontal: hardLetterSpacing,
-                  // Gesture-based spacing
-                  letterSpacing: gestureSpacing,
                 }}
               >
                 {ch}
               </Text>
             );
           })}
-          {hasCustomSpacing && (
+          {hasCustomScale && (
             <View
               style={{
                 position: 'absolute',
@@ -143,7 +143,7 @@ export const Reader: React.FC<Props> = ({
         </Pressable>
       );
     });
-  }, [words, config, perWordSpacingOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex]);
+  }, [words, config, perWordFontSizeOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex]);
 
   return (
     <Pressable 

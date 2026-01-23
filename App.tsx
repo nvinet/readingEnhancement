@@ -42,7 +42,7 @@ function App(){
   };
 
   const [inputText, setInputText] = useState<string>('');
-  const [perWordSpacingOverrides, setPerWordSpacingOverrides] = useState<Record<number, number>>({});
+  const [perWordFontSizeOverrides, setPerWordFontSizeOverrides] = useState<Record<number, number>>({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState<boolean>(false);
   const [config, setConfig] = useState<ReaderConfig>({
@@ -84,25 +84,25 @@ function App(){
     }, 100); // 100ms debounce
   }, []);
 
-  function updatePerWordSpacing(index: number, delta: number) {
-    setPerWordSpacingOverrides(prev => {
+  function updatePerWordFontSize(index: number, delta: number) {
+    setPerWordFontSizeOverrides(prev => {
       const current = prev[index] || 0;
       const next = Math.max(0, current + delta);
       return {...prev, [index]: next};
     });
   }
 
-  function resetSelectedWordSpacing() {
+  function resetSelectedWordScale() {
     if (selectedIndex == null) return;
-    setPerWordSpacingOverrides(prev => {
+    setPerWordFontSizeOverrides(prev => {
       const next = {...prev};
       delete next[selectedIndex!];
       return next;
     });
   }
 
-  function resetAllWordSpacings() {
-    setPerWordSpacingOverrides({});
+  function resetAllWordScales() {
+    setPerWordFontSizeOverrides({});
   }
 
   const overlayStyle = useMemo(() => ({
@@ -253,18 +253,18 @@ function App(){
               <Reader
                 text={inputText}
                 config={config}
-                perWordSpacingOverrides={perWordSpacingOverrides}
+                perWordFontSizeOverrides={perWordFontSizeOverrides}
                 onSelectWordIndex={(idx) => {
                   if (idx === null) {
                     Keyboard.dismiss();
                   }
                   setSelectedIndex(idx);
                 }}
-                onAdjustSelectedWordSpacing={(delta) => {
-                  if (selectedIndex != null) updatePerWordSpacing(selectedIndex, delta);
+                onAdjustSelectedWordScale={(delta) => {
+                  if (selectedIndex != null) updatePerWordFontSize(selectedIndex, delta);
                 }}
                 onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
-                onResetSelectedWordSpacing={resetSelectedWordSpacing}
+                onResetSelectedWordScale={resetSelectedWordScale}
               />
             </View>
             <View style={overlayStyle} />
@@ -298,7 +298,7 @@ function App(){
           brightness={liveValues.brightness}
           onChangeBrightness={handleChangeBrightness}
           onSave={handleSaveConfiguration}
-          onResetAllWordSpacings={resetAllWordSpacings}
+          onResetAllWordScales={resetAllWordScales}
         />
       </SafeAreaView>
     </GestureHandlerRootView>
