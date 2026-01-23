@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { StyleSheet, View, LayoutChangeEvent, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, clamp, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, clamp, runOnJS, useFrameCallback, SharedValue } from 'react-native-reanimated';
+
+export interface TextTickerHandle {
+  reset: () => void;
+}
 
 interface TextTickerProps {
   style?: any;
@@ -9,14 +13,40 @@ interface TextTickerProps {
   onPinchStart?: () => void;
   onPinchUpdate?: (scale: number) => void;
   onPinchEnd?: () => void;
+  speed?: SharedValue<number>;
 }
 
-const TextTicker: React.FC<TextTickerProps> = ({ children, style, onPinchStart, onPinchUpdate, onPinchEnd }) => {
+const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, style, onPinchStart, onPinchUpdate, onPinchEnd, speed }, ref) => {
   const [contentWidth, setContentWidth] = useState(0);
   const { width: containerWidth } = useWindowDimensions();
 
   const translateX = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
+  const contentWidthSV = useSharedValue(0);
+  const containerWidthSV = useSharedValue(0);
+
+  React.useEffect(() => {
+    containerWidthSV.value = containerWidth;
+  }, [containerWidth]);
+
+  useImperativeHandle(ref, () => ({
+    reset: () => {
+      translateX.value = 0;
+      savedTranslateX.value = 0;
+    }
+  }));
+
+  useFrameCallback(() => {
+    if (!speed || speed.value === 0) return;
+
+    const minTranslate = containerWidthSV.value - contentWidthSV.value;
+    const maxTranslate = 0;
+
+    // Only scroll if content is wider than container
+    if (minTranslate < 0) {
+      translateX.value = clamp(translateX.value - speed.value, minTranslate, maxTranslate);
+    }
+  });
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -59,14 +89,18 @@ const TextTicker: React.FC<TextTickerProps> = ({ children, style, onPinchStart, 
       ]}>
         <Animated.View
           style={[styles.content, animatedStyle]}
-          onLayout={(e: LayoutChangeEvent) => setContentWidth(e.nativeEvent.layout.width)}
+          onLayout={(e: LayoutChangeEvent) => {
+            const w = e.nativeEvent.layout.width;
+            setContentWidth(w);
+            contentWidthSV.value = w;
+          }}
         >
           {children}
         </Animated.View>
       </View>
     </GestureDetector>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

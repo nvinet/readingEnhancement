@@ -101,6 +101,14 @@ function App(){
     });
   }
 
+  function resetWordScaleByIndex(index: number) {
+    setPerWordFontSizeOverrides(prev => {
+      const next = {...prev};
+      delete next[index];
+      return next;
+    });
+  }
+
   function resetAllWordScales() {
     setPerWordFontSizeOverrides({});
   }
@@ -265,6 +273,7 @@ function App(){
                 }}
                 onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
                 onResetSelectedWordScale={resetSelectedWordScale}
+                onResetWordScaleByIndex={resetWordScaleByIndex}
               />
             </View>
             <View style={overlayStyle} />

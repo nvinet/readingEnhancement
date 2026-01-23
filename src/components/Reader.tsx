@@ -1,6 +1,8 @@
 import React, {useMemo, useState, useRef} from 'react';
 import {Text, View, StyleSheet, Pressable} from 'react-native';
-import TextTicker from './TextTicker';
+import { useSharedValue } from 'react-native-reanimated';
+import TextTicker, { TextTickerHandle } from './TextTicker';
+import Controller from './Controller';
 
 export type ReaderConfig = {
   fontFamily: string | undefined;
@@ -44,17 +46,98 @@ function findDoubleLetterIndices(word: string): number[] {
   return indices;
 }
 
+type WordProps = {
+  word: string;
+  index: number;
+  isSelected: boolean;
+  config: ReaderConfig;
+  fontSizeDelta: number;
+  hardLettersSet: Set<string>;
+  onSelect?: (index: number) => void;
+  onReset?: (index: number) => void;
+};
+
+const Word = React.memo(({ word, index, isSelected, config, fontSizeDelta, hardLettersSet, onSelect, onReset }: WordProps) => {
+  const doubleIndices = findDoubleLetterIndices(word);
+  const chars = word.split('');
+  const hasCustomScale = fontSizeDelta !== 0;
+  const effectiveFontSize = Math.max(5, config.baseFontSize + fontSizeDelta);
+
+  const lastTap = useRef<number>(0);
+  const handlePress = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      onReset?.(index);
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+      onSelect?.(index);
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+        style={{
+          flexDirection: 'row',
+          marginRight: config.wordSpacing,
+          alignItems: 'center',
+          backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.2)' : 'transparent',
+          borderRadius: isSelected ? 100 : 4,
+          paddingHorizontal: isSelected ? 20 : 0,
+          paddingVertical: isSelected ? 10 : 0,
+        }}
+      >
+        {chars.map((ch, i) => {
+          const isDoubleColored = doubleIndices.includes(i);
+          const isHard = hardLettersSet.has(ch);
+          const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
+          
+          return (
+            <Text
+              key={i}
+              style={{
+                color: isDoubleColored ? config.doubleLetterColor : config.textColor,
+                fontFamily: config.fontFamily,
+                fontSize: effectiveFontSize,
+                marginHorizontal: hardLetterSpacing,
+              }}
+            >
+              {ch}
+            </Text>
+          );
+        })}
+        {hasCustomScale && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -4,
+              right: -4,
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: '#2196F3',
+            }}
+          />
+        )}
+    </Pressable>
+  );
+});
+
 export const Reader: React.FC<Props> = ({
   text,
   config,
   perWordFontSizeOverrides,
   onSelectWordIndex,
   onAdjustSelectedWordScale,
-  onAdjustFontSize
+  onAdjustFontSize,
+  onResetWordScaleByIndex
 }) => {
   const words = useMemo(() => splitIntoWords(text), [text]);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const lastScale = useRef(1);
+  const speed = useSharedValue(0);
+  const tickerRef = useRef<TextTickerHandle>(null);
   
   // Create a Set of hard letters from the config
   const hardLettersSet = useMemo(() => {
@@ -84,66 +167,24 @@ export const Reader: React.FC<Props> = ({
 
   const renderedWords = useMemo(() => {
     return words.map((word, index) => {
-      const doubleIndices = findDoubleLetterIndices(word);
-      const fontSizeDelta = perWordFontSizeOverrides[index] || 0;
-      const chars = word.split('');
-      const isSelected = selectedWordIndex === index;
-      const hasCustomScale = fontSizeDelta !== 0;
-      const effectiveFontSize = Math.max(5, config.baseFontSize + fontSizeDelta);
-
       return (
-        <Pressable
+        <Word
           key={index}
-          onPress={() => {
-            setSelectedWordIndex(index);
-            onSelectWordIndex?.(index);
+          word={word}
+          index={index}
+          isSelected={selectedWordIndex === index}
+          config={config}
+          fontSizeDelta={perWordFontSizeOverrides[index] || 0}
+          hardLettersSet={hardLettersSet}
+          onSelect={(idx) => {
+            setSelectedWordIndex(idx);
+            onSelectWordIndex?.(idx);
           }}
-          style={{
-            flexDirection: 'row',
-            marginRight: config.wordSpacing,
-            alignItems: 'center',
-            backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.2)' : 'transparent',
-            borderRadius: isSelected ? 100 : 4,
-            paddingHorizontal: isSelected ? 20 : 0,
-            paddingVertical: isSelected ? 10 : 0,
-          }}
-        >
-          {chars.map((ch, i) => {
-            const isDoubleColored = doubleIndices.includes(i);
-            const isHard = hardLettersSet.has(ch);
-            const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
-            
-            return (
-              <Text
-                key={i}
-                style={{
-                  color: isDoubleColored ? config.doubleLetterColor : config.textColor,
-                  fontFamily: config.fontFamily,
-                  fontSize: effectiveFontSize,
-                  marginHorizontal: hardLetterSpacing,
-                }}
-              >
-                {ch}
-              </Text>
-            );
-          })}
-          {hasCustomScale && (
-            <View
-              style={{
-                position: 'absolute',
-                top: -4,
-                right: -4,
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: '#2196F3',
-              }}
-            />
-          )}
-        </Pressable>
+          onReset={onResetWordScaleByIndex}
+        />
       );
     });
-  }, [words, config, perWordFontSizeOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex]);
+  }, [words, config, perWordFontSizeOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex, onResetWordScaleByIndex]);
 
   return (
     <Pressable 
@@ -156,22 +197,19 @@ export const Reader: React.FC<Props> = ({
       <View style={styles.band}>
         <TextTicker 
           key={text}
+          ref={tickerRef}
+          speed={speed}
           onPinchStart={handlePinchStart}
           onPinchUpdate={handlePinchUpdate}
         >
           {renderedWords}
         </TextTicker>
       </View>
+      <Controller speed={speed} onReset={() => tickerRef.current?.reset()} />
       <Text 
             style={{justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
-            onPress={() => {
-              setSelectedWordIndex(null);
-              onSelectWordIndex && onSelectWordIndex(null);
-            }}
           >
-            {selectedWordIndex != null
-              ? 'Selected word is highlighted in BLUE. Pinch OUT to zoom letters, Pinch IN to shrink. Tap here to deselect.'
-              : 'TAP any word to select it (blue highlight), then PINCH to adjust its letter spacing. Pinch in empty space for global font size.'}
+            TAP any word to select it (blue highlight), then PINCH to adjust its letter spacing. Double-TAP to reset the font-size.
           </Text>
     </Pressable>
   );
