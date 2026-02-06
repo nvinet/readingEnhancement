@@ -18,6 +18,8 @@ export type SidePanelProps = {
   onChangeTextColor: (c: string) => void;
   doubleLetterColor: string;
   onChangeDoubleLetterColor: (c: string) => void;
+  underlineColor: string;
+  onChangeUnderlineColor: (c: string) => void;
   hardLetters: string;
   onChangeHardLetters: (letters: string) => void;
   hardLetterExtraSpacing: number;
@@ -45,6 +47,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onChangeTextColor,
   doubleLetterColor,
   onChangeDoubleLetterColor,
+  underlineColor,
+  onChangeUnderlineColor,
   hardLetters,
   onChangeHardLetters,
   hardLetterExtraSpacing,
@@ -190,6 +194,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               label="Double Letter Color"
               value={doubleLetterColor}
               onChange={onChangeDoubleLetterColor}
+            />
+
+            <ColorPickerField
+              label="Underline Color"
+              value={underlineColor}
+              onChange={onChangeUnderlineColor}
             />
 
             <View style={{marginBottom: 12}}>

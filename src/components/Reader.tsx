@@ -1,6 +1,6 @@
-import React, {useMemo, useState, useRef} from 'react';
-import {Text, View, StyleSheet, Pressable} from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
+import React, {useMemo, useState, useRef, useCallback} from 'react';
+import {Text, View, StyleSheet, Pressable, useWindowDimensions} from 'react-native';
+import { useSharedValue, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import TextTicker, { TextTickerHandle } from './TextTicker';
 import Controller, { ControllerHandle } from './Controller';
 
@@ -14,6 +14,7 @@ export type ReaderConfig = {
   wordSpacing: number; // px between words
   baseFontSize: number;
   maxScrollSpeed: number; // pixels per frame for auto-scroll (1-15)
+  underlineColor: string;
 };
 
 type Props = {
@@ -51,14 +52,16 @@ type WordProps = {
   word: string;
   index: number;
   isSelected: boolean;
+  isCentered: boolean;
   config: ReaderConfig;
   fontSizeDelta: number;
   hardLettersSet: Set<string>;
   onSelect?: (index: number) => void;
   onReset?: (index: number) => void;
+  onWordLayout?: (x: number, width: number) => void;
 };
 
-const Word = React.memo(({ word, index, isSelected, config, fontSizeDelta, hardLettersSet, onSelect, onReset }: WordProps) => {
+const Word = React.memo(({ word, index, isSelected, isCentered, config, fontSizeDelta, hardLettersSet, onSelect, onReset, onWordLayout }: WordProps) => {
   const doubleIndices = findDoubleLetterIndices(word);
   const chars = word.split('');
   const hasCustomScale = fontSizeDelta !== 0;
@@ -79,6 +82,10 @@ const Word = React.memo(({ word, index, isSelected, config, fontSizeDelta, hardL
   return (
     <Pressable
       onPress={handlePress}
+      onLayout={(e) => {
+        const { x, width } = e.nativeEvent.layout;
+        onWordLayout?.(x, width);
+      }}
         style={{
           flexDirection: 'row',
           marginRight: config.wordSpacing,
@@ -93,7 +100,7 @@ const Word = React.memo(({ word, index, isSelected, config, fontSizeDelta, hardL
           const isDoubleColored = doubleIndices.includes(i);
           const isHard = hardLettersSet.has(ch);
           const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
-          
+
           return (
             <Text
               key={i}
@@ -121,6 +128,19 @@ const Word = React.memo(({ word, index, isSelected, config, fontSizeDelta, hardL
             }}
           />
         )}
+        {isCentered && (
+          <View
+            style={{
+              position: 'absolute',
+              bottom: -4,
+              left: 0,
+              right: 0,
+              height: 3,
+              backgroundColor: config.underlineColor,
+              borderRadius: 1.5,
+            }}
+          />
+        )}
     </Pressable>
   );
 });
@@ -134,13 +154,47 @@ export const Reader: React.FC<Props> = ({
   onAdjustFontSize,
   onResetWordScaleByIndex
 }) => {
+  const { width: screenWidth } = useWindowDimensions();
   const words = useMemo(() => splitIntoWords(text), [text]);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [centeredIndex, setCenteredIndex] = useState<number>(-1);
+  const centeredIndexRef = useRef(-1);
   const lastScale = useRef(1);
   const speed = useSharedValue(0);
+  const scrollX = useSharedValue(0);
   const tickerRef = useRef<TextTickerHandle>(null);
   const controllerRef = useRef<ControllerHandle>(null);
-  
+  const wordPositions = useRef<{x: number, width: number}[]>([]);
+
+  const handleWordLayout = useCallback((index: number, x: number, width: number) => {
+    wordPositions.current[index] = { x, width };
+  }, []);
+
+  const computeCenteredWord = useCallback((currentScrollX: number) => {
+    const center = screenWidth / 2;
+    let closestIdx = -1;
+    let closestDist = Infinity;
+    for (let i = 0; i < wordPositions.current.length; i++) {
+      const wp = wordPositions.current[i];
+      if (!wp) continue;
+      const wordCenter = wp.x + wp.width / 2 + currentScrollX;
+      const dist = Math.abs(wordCenter - center);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = i;
+      }
+    }
+    if (closestIdx !== centeredIndexRef.current) {
+      centeredIndexRef.current = closestIdx;
+      setCenteredIndex(closestIdx);
+    }
+  }, [screenWidth]);
+
+  useAnimatedReaction(
+    () => scrollX.value,
+    (val) => { runOnJS(computeCenteredWord)(val); }
+  );
+
   // Create a Set of hard letters from the config
   const hardLettersSet = useMemo(() => {
     const hardLetters = (config.hardLetters || DEFAULT_HARD_LETTERS).normalize('NFC');
@@ -175,6 +229,7 @@ export const Reader: React.FC<Props> = ({
           word={word}
           index={index}
           isSelected={selectedWordIndex === index}
+          isCentered={centeredIndex === index}
           config={config}
           fontSizeDelta={perWordFontSizeOverrides[index] || 0}
           hardLettersSet={hardLettersSet}
@@ -184,10 +239,11 @@ export const Reader: React.FC<Props> = ({
             controllerRef.current?.resetSpeed();
           }}
           onReset={onResetWordScaleByIndex}
+          onWordLayout={(x, width) => handleWordLayout(index, x, width)}
         />
       );
     });
-  }, [words, config, perWordFontSizeOverrides, hardLettersSet, selectedWordIndex, onSelectWordIndex, onResetWordScaleByIndex]);
+  }, [words, config, perWordFontSizeOverrides, hardLettersSet, selectedWordIndex, centeredIndex, onSelectWordIndex, onResetWordScaleByIndex, handleWordLayout]);
 
   return (
     <Pressable 
@@ -198,10 +254,11 @@ export const Reader: React.FC<Props> = ({
       }}
     >
       <View style={styles.band}>
-        <TextTicker 
+        <TextTicker
           key={text}
           ref={tickerRef}
           speed={speed}
+          scrollX={scrollX}
           onPinchStart={handlePinchStart}
           onPinchUpdate={handlePinchUpdate}
         >

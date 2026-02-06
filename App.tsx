@@ -72,6 +72,7 @@ function App(){
     wordSpacing: 8,
     baseFontSize: 20,
     maxScrollSpeed: 3,
+    underlineColor: '#1976D2',
   });
   const [brightness, setBrightness] = useState<number>(0); // overlay darkness 0-1
   
@@ -157,6 +158,10 @@ function App(){
 
   const handleChangeDoubleLetterColor = useCallback((c: string) => {
     setConfig(prev => ({...prev, doubleLetterColor: c}));
+  }, []);
+
+  const handleChangeUnderlineColor = useCallback((c: string) => {
+    setConfig(prev => ({...prev, underlineColor: c}));
   }, []);
 
   const handleChangeHardLetters = useCallback((letters: string) => {
@@ -366,6 +371,8 @@ function App(){
           onChangeTextColor={handleChangeTextColor}
           doubleLetterColor={config.doubleLetterColor}
           onChangeDoubleLetterColor={handleChangeDoubleLetterColor}
+          underlineColor={config.underlineColor}
+          onChangeUnderlineColor={handleChangeUnderlineColor}
           hardLetters={config.hardLetters}
           onChangeHardLetters={handleChangeHardLetters}
           hardLetterExtraSpacing={liveValues.hardLetterExtraSpacing}

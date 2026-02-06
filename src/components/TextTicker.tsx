@@ -14,13 +14,13 @@ interface TextTickerProps {
   onPinchUpdate?: (scale: number) => void;
   onPinchEnd?: () => void;
   speed?: SharedValue<number>;
+  scrollX: SharedValue<number>;
 }
 
-const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, style, onPinchStart, onPinchUpdate, onPinchEnd, speed }, ref) => {
+const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, style, onPinchStart, onPinchUpdate, onPinchEnd, speed, scrollX }, ref) => {
   const [contentWidth, setContentWidth] = useState(0);
   const { width: containerWidth } = useWindowDimensions();
 
-  const translateX = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const contentWidthSV = useSharedValue(0);
   const containerWidthSV = useSharedValue(0);
@@ -30,15 +30,15 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
     containerWidthSV.value = containerWidth;
     const newCenter = containerWidth / 2;
     // Set initial position to center, or update if it was at the previous center
-    if (translateX.value === 0 || Math.abs(translateX.value - prevCenter) < 1) {
-      translateX.value = newCenter;
+    if (scrollX.value === 0 || Math.abs(scrollX.value - prevCenter) < 1) {
+      scrollX.value = newCenter;
       savedTranslateX.value = newCenter;
     }
   }, [containerWidth]);
 
   useImperativeHandle(ref, () => ({
     reset: () => {
-      translateX.value = containerWidthSV.value / 2;
+      scrollX.value = containerWidthSV.value / 2;
       savedTranslateX.value = containerWidthSV.value / 2;
     }
   }));
@@ -51,13 +51,13 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
     const maxTranslate = center;
 
     if (minTranslate < maxTranslate) {
-      translateX.value = clamp(translateX.value - speed.value, minTranslate, maxTranslate);
+      scrollX.value = clamp(scrollX.value - speed.value, minTranslate, maxTranslate);
     }
   });
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
-      savedTranslateX.value = translateX.value;
+      savedTranslateX.value = scrollX.value;
     })
     .onUpdate((event) => {
       if (contentWidth <= containerWidth) {
@@ -66,7 +66,7 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
       const center = containerWidth / 2;
       const minTranslate = center - contentWidth;
       const maxTranslate = center;
-      translateX.value = clamp(savedTranslateX.value + event.translationX, minTranslate, maxTranslate);
+      scrollX.value = clamp(savedTranslateX.value + event.translationX, minTranslate, maxTranslate);
     });
 
   const pinchGesture = Gesture.Pinch()
@@ -84,7 +84,7 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: translateX.value }],
+      transform: [{ translateX: scrollX.value }],
     };
   });
 
