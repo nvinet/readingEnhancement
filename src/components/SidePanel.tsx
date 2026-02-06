@@ -26,6 +26,8 @@ export type SidePanelProps = {
   onChangeWordSpacing: (v: number) => void;
   baseFontSize: number;
   onChangeBaseFontSize: (v: number) => void;
+  maxScrollSpeed: number;
+  onChangeMaxScrollSpeed: (v: number) => void;
   brightness: number; // 0-1 overlay darkness
   onChangeBrightness: (v: number) => void;
   onSave: () => void;
@@ -51,6 +53,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onChangeWordSpacing,
   baseFontSize,
   onChangeBaseFontSize,
+  maxScrollSpeed,
+  onChangeMaxScrollSpeed,
   brightness,
   onChangeBrightness,
   onSave,
@@ -250,6 +254,34 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               step={1}
             />
 
+            <MemoizedSliderField
+              label="Base font size"
+              value={baseFontSize}
+              onChange={onChangeBaseFontSize}
+              min={8}
+              max={48}
+              step={1}
+            />
+
+            <MemoizedSliderField
+              label="Max scroll speed"
+              value={maxScrollSpeed}
+              onChange={onChangeMaxScrollSpeed}
+              min={0.5}
+              max={10}
+              step={0.5}
+            />
+
+            <MemoizedSliderField
+              label="Brightness (overlay %)"
+              value={brightness}
+              onChange={onChangeBrightness}
+              min={0}
+              max={1}
+              step={0.05}
+              displayMultiplier={100}
+            />
+
             <View style={{marginBottom: 12}}>
               <TouchableOpacity
                 onPress={onResetAllWordScales}
@@ -264,26 +296,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 <Text style={{color: 'white', fontWeight: '600'}}>Reset Custom Sizes</Text>
               </TouchableOpacity>
             </View>
-
-            <MemoizedSliderField
-              label="Base font size"
-              value={baseFontSize}
-              onChange={onChangeBaseFontSize}
-              min={8}
-              max={48}
-              step={1}
-            />
-
-            <MemoizedSliderField
-              label="Brightness (overlay %)"
-              value={brightness}
-              onChange={onChangeBrightness}
-              min={0}
-              max={1}
-              step={0.05}
-              displayMultiplier={100}
-            />
           </ScrollView>
+
+
 
           {/* Save Button - Fixed at bottom */}
           <View style={{

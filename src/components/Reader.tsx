@@ -13,6 +13,7 @@ export type ReaderConfig = {
   hardLetterExtraSpacing: number; // px after specific letters
   wordSpacing: number; // px between words
   baseFontSize: number;
+  maxScrollSpeed: number; // pixels per frame for auto-scroll (1-15)
 };
 
 type Props = {
@@ -207,7 +208,7 @@ export const Reader: React.FC<Props> = ({
           {renderedWords}
         </TextTicker>
       </View>
-      <Controller ref={controllerRef} speed={speed} onReset={() => tickerRef.current?.reset()} />
+      <Controller ref={controllerRef} speed={speed} maxSpeed={config.maxScrollSpeed} onReset={() => tickerRef.current?.reset()} />
       <Text 
             style={{justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
           >

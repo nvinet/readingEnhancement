@@ -16,9 +16,11 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
+  Pressable,
 } from 'react-native';
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Removed import { Colors } from 'react-native/Libraries/NewAppScreen';
@@ -45,6 +47,21 @@ function App(){
   const [perWordFontSizeOverrides, setPerWordFontSizeOverrides] = useState<Record<number, number>>({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState<boolean>(false);
+  const [isInputExpanded, setIsInputExpanded] = useState<boolean>(true);
+  const inputExpandProgress = useSharedValue(1);
+
+  const toggleInput = useCallback(() => {
+    const expanding = !isInputExpanded;
+    setIsInputExpanded(expanding);
+    Keyboard.dismiss();
+    inputExpandProgress.value = withTiming(expanding ? 1 : 0, { duration: 300 });
+  }, [isInputExpanded, inputExpandProgress]);
+
+  const inputAnimatedStyle = useAnimatedStyle(() => ({
+    maxHeight: inputExpandProgress.value * 250,
+    opacity: inputExpandProgress.value,
+    overflow: 'hidden' as const,
+  }));
   const [config, setConfig] = useState<ReaderConfig>({
     fontFamily: undefined,
     backgroundColor: '#FFFFFF',
@@ -54,6 +71,7 @@ function App(){
     hardLetterExtraSpacing: 2,
     wordSpacing: 8,
     baseFontSize: 20,
+    maxScrollSpeed: 3,
   });
   const [brightness, setBrightness] = useState<number>(0); // overlay darkness 0-1
   
@@ -62,6 +80,7 @@ function App(){
     hardLetterExtraSpacing: config.hardLetterExtraSpacing,
     wordSpacing: config.wordSpacing,
     baseFontSize: config.baseFontSize,
+    maxScrollSpeed: config.maxScrollSpeed,
     brightness: brightness,
   });
 
@@ -177,6 +196,7 @@ function App(){
                 hardLetterExtraSpacing: parsed.config.hardLetterExtraSpacing ?? prev.hardLetterExtraSpacing,
                 wordSpacing: parsed.config.wordSpacing ?? prev.wordSpacing,
                 baseFontSize: parsed.config.baseFontSize ?? prev.baseFontSize,
+                maxScrollSpeed: parsed.config.maxScrollSpeed ?? prev.maxScrollSpeed,
               }));
             }
             if (typeof parsed.brightness === 'number') {
@@ -226,6 +246,14 @@ function App(){
     });
   }, [debouncedUpdateConfig]);
 
+  const handleChangeMaxScrollSpeed = useCallback((v: number) => {
+    const clampedValue = Math.max(0.5, Math.min(10, v));
+    setLiveValues(prev => ({...prev, maxScrollSpeed: clampedValue}));
+    debouncedUpdateConfig('maxScrollSpeed', clampedValue, () => {
+      setConfig(prev => ({...prev, maxScrollSpeed: clampedValue}));
+    });
+  }, [debouncedUpdateConfig]);
+
   const handleChangeBrightness = useCallback((v: number) => {
     // Update live value immediately
     setLiveValues(prev => ({...prev, brightness: v}));
@@ -244,19 +272,21 @@ function App(){
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
-            <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
-              <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
-              <ScrollView style={{maxHeight: 200}} keyboardShouldPersistTaps="handled">
-                <TextInput
-                  ref={textInputRef}
-                  value={inputText}
-                  onChangeText={setInputText}
-                  multiline
-                  placeholder="Paste text here..."
-                  style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
-                />
-              </ScrollView>
-            </View>
+            <Animated.View style={inputAnimatedStyle}>
+              <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
+                <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
+                <ScrollView style={{maxHeight: 200}} keyboardShouldPersistTaps="handled">
+                  <TextInput
+                    ref={textInputRef}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    multiline
+                    placeholder="Paste text here..."
+                    style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
+                  />
+                </ScrollView>
+              </View>
+            </Animated.View>
             <View style={{flex: 1, padding: 12}}>
               <Reader
                 text={inputText}
@@ -279,6 +309,46 @@ function App(){
             <View style={overlayStyle} />
           </View>
         </TouchableWithoutFeedback>
+
+        <Pressable
+          onPress={toggleInput}
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 16,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: isInputExpanded ? '#757575' : '#1976D2',
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+            zIndex: 1000,
+          }}
+        >
+          <View style={{
+            width: 18,
+            height: 18,
+            transform: [{ rotate: '-45deg' }],
+            justifyContent: 'flex-end',
+          }}>
+            <View style={{ width: 3, height: 14, backgroundColor: 'white', borderRadius: 1 }} />
+            <View style={{
+              width: 0,
+              height: 0,
+              borderLeftWidth: 1.5,
+              borderRightWidth: 1.5,
+              borderTopWidth: 4,
+              borderLeftColor: 'transparent',
+              borderRightColor: 'transparent',
+              borderTopColor: 'white',
+            }} />
+          </View>
+        </Pressable>
 
         <SettingsButton onPress={() => {
           textInputRef.current?.blur();
@@ -304,6 +374,8 @@ function App(){
           onChangeWordSpacing={handleChangeWordSpacing}
           baseFontSize={liveValues.baseFontSize}
           onChangeBaseFontSize={handleChangeBaseFontSize}
+          maxScrollSpeed={liveValues.maxScrollSpeed}
+          onChangeMaxScrollSpeed={handleChangeMaxScrollSpeed}
           brightness={liveValues.brightness}
           onChangeBrightness={handleChangeBrightness}
           onSave={handleSaveConfiguration}
