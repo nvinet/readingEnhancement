@@ -26,24 +26,31 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
   const containerWidthSV = useSharedValue(0);
 
   React.useEffect(() => {
+    const prevCenter = containerWidthSV.value / 2;
     containerWidthSV.value = containerWidth;
+    const newCenter = containerWidth / 2;
+    // Set initial position to center, or update if it was at the previous center
+    if (translateX.value === 0 || Math.abs(translateX.value - prevCenter) < 1) {
+      translateX.value = newCenter;
+      savedTranslateX.value = newCenter;
+    }
   }, [containerWidth]);
 
   useImperativeHandle(ref, () => ({
     reset: () => {
-      translateX.value = 0;
-      savedTranslateX.value = 0;
+      translateX.value = containerWidthSV.value / 2;
+      savedTranslateX.value = containerWidthSV.value / 2;
     }
   }));
 
   useFrameCallback(() => {
     if (!speed || speed.value === 0) return;
 
-    const minTranslate = containerWidthSV.value - contentWidthSV.value;
-    const maxTranslate = 0;
+    const center = containerWidthSV.value / 2;
+    const minTranslate = center - contentWidthSV.value;
+    const maxTranslate = center;
 
-    // Only scroll if content is wider than container
-    if (minTranslate < 0) {
+    if (minTranslate < maxTranslate) {
       translateX.value = clamp(translateX.value - speed.value, minTranslate, maxTranslate);
     }
   });
@@ -53,12 +60,12 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
       savedTranslateX.value = translateX.value;
     })
     .onUpdate((event) => {
-      // Only allow panning if the content is wider than the container
       if (contentWidth <= containerWidth) {
         return;
       }
-      const minTranslate = containerWidth - contentWidth;
-      const maxTranslate = 0;
+      const center = containerWidth / 2;
+      const minTranslate = center - contentWidth;
+      const maxTranslate = center;
       translateX.value = clamp(savedTranslateX.value + event.translationX, minTranslate, maxTranslate);
     });
 
