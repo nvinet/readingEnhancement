@@ -14,6 +14,7 @@ gem 'bigdecimal'
 gem 'logger'
 gem 'benchmark'
 gem 'mutex_m'
+gem 'ostruct'  # Required by fastlane in Ruby 3.4+
 
 # Fastlane for iOS automation and TestFlight deployment
 gem 'fastlane'
