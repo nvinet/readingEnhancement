@@ -1,0 +1,13 @@
+# App identifier
+app_identifier("com.nvinet.readingEnhancement")
+
+# Apple ID for App Store Connect
+# apple_id("your-email@example.com") # Uncomment and set your Apple ID
+
+# Team ID (you can find this in App Store Connect or Apple Developer Portal)
+# team_id("XXXXXXXXXX") # Uncomment and set your team ID
+
+# itc_team_id("XXXXXXXXXX") # Uncomment if you have multiple teams
+
+# For more information about the Appfile, see:
+# https://docs.fastlane.tools/advanced/#appfile
