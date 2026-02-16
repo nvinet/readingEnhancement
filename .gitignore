@@ -53,6 +53,10 @@ yarn-error.log
 **/fastlane/screenshots
 **/fastlane/test_output
 
+# Build artifacts
+*.dSYM.zip
+*.ipa
+
 # Bundle artifact
 *.jsbundle
 
