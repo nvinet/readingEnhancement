@@ -16,6 +16,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Pressable,
+  Alert,
 } from 'react-native';
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -34,6 +35,31 @@ import Reader, {ReaderConfig} from './src/components/Reader';
 import SidePanel from './src/components/SidePanel';
 import SettingsButton from './src/components/SettingsButton';
 import {setBrightness as setNativeBrightness} from './src/native/Brightness';
+
+/**
+ * Error logging utility
+ * TODO: Integrate with error tracking service (Sentry, etc.) in production
+ */
+function logError(context: string, error: unknown): void {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`[${context}]`, errorMessage, error);
+  // TODO: Send to error tracking service in production
+  // Example: Sentry.captureException(error, { tags: { context } });
+}
+
+/**
+ * Show user-facing error alert
+ */
+function showErrorAlert(title: string, message: string): void {
+  Alert.alert(title, message, [{ text: 'OK', style: 'default' }]);
+}
+
+/**
+ * Show success alert
+ */
+function showSuccessAlert(message: string): void {
+  Alert.alert('Success', message, [{ text: 'OK', style: 'default' }]);
+}
 
 function App(){
   const isDarkMode = useColorScheme() === 'dark';
@@ -205,14 +231,21 @@ function App(){
             if (typeof parsed.brightness === 'number') {
               setBrightness(parsed.brightness);
               setLiveValues((prev) => ({...prev, brightness: parsed.brightness}));
-              try { setNativeBrightness(parsed.brightness); } catch (e) { 
-                console.log(e)
+              try { 
+                setNativeBrightness(parsed.brightness); 
+              } catch (e) { 
+                logError('SetBrightness', e);
+                // Non-critical error - brightness setting failed but app continues
               }
             }
           }
         }
       } catch (e) {
-        console.log(e)
+        logError('LoadConfiguration', e);
+        showErrorAlert(
+          'Configuration Load Failed',
+          'Could not load your saved settings. Using default configuration.'
+        );
       }
     })();
   }, []);
@@ -224,8 +257,13 @@ function App(){
         brightness,
       });
       await AsyncStorage.setItem('reader_config_v1', payload);
+      showSuccessAlert('Your configuration has been saved successfully.');
     } catch (e) {
-      console.log(e)
+      logError('SaveConfiguration', e);
+      showErrorAlert(
+        'Save Failed',
+        'Could not save your configuration. Please try again.'
+      );
     }
   }, [config, brightness]);
 
@@ -263,8 +301,12 @@ function App(){
     // Debounce brightness and native updates
     debouncedUpdateConfig('brightness', v, () => {
       setBrightness(v);
-      try { setNativeBrightness(v); } catch (e) { 
-        console.log(e)}
+      try { 
+        setNativeBrightness(v); 
+      } catch (e) { 
+        logError('UpdateBrightness', e);
+        // Non-critical error - brightness overlay still works, native setting failed
+      }
     });
   }, [debouncedUpdateConfig]);
 
