@@ -5,7 +5,6 @@
  * @format
  */
 
-// @ts-ignore
 import React, {useMemo, useState, useCallback, useRef, useEffect} from 'react';
 import {
   StatusBar,
@@ -50,7 +49,7 @@ function App(){
   const [isInputExpanded, setIsInputExpanded] = useState<boolean>(true);
   const inputExpandProgress = useSharedValue(1);
 
-  const toggleInput = useCallback(() => {
+  const toggleInput = useCallback((): void => {
     const expanding = !isInputExpanded;
     setIsInputExpanded(expanding);
     Keyboard.dismiss();
@@ -86,12 +85,11 @@ function App(){
   });
 
   // Refs for debounce timers
-  // @ts-ignore
-  const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const textInputRef = useRef<TextInput>(null);
 
   // Debounced update function for config
-  const debouncedUpdateConfig = useCallback((key: string, value: number, updateFn: () => void) => {
+  const debouncedUpdateConfig = useCallback((key: string, value: number, updateFn: () => void): void => {
     // Clear existing timer for this key
     if (debounceTimers.current[key]) {
       clearTimeout(debounceTimers.current[key]);
@@ -104,7 +102,7 @@ function App(){
     }, 100); // 100ms debounce
   }, []);
 
-  function updatePerWordFontSize(index: number, delta: number) {
+  function updatePerWordFontSize(index: number, delta: number): void {
     setPerWordFontSizeOverrides(prev => {
       const current = prev[index] || 0;
       const next = Math.max(0, current + delta);
@@ -112,7 +110,7 @@ function App(){
     });
   }
 
-  function resetSelectedWordScale() {
+  function resetSelectedWordScale(): void {
     if (selectedIndex == null) return;
     setPerWordFontSizeOverrides(prev => {
       const next = {...prev};
@@ -121,7 +119,7 @@ function App(){
     });
   }
 
-  function resetWordScaleByIndex(index: number) {
+  function resetWordScaleByIndex(index: number): void {
     setPerWordFontSizeOverrides(prev => {
       const next = {...prev};
       delete next[index];
@@ -129,7 +127,7 @@ function App(){
     });
   }
 
-  function resetAllWordScales() {
+  function resetAllWordScales(): void {
     setPerWordFontSizeOverrides({});
   }
 
@@ -144,27 +142,27 @@ function App(){
   }), [liveValues.brightness]);
 
   // Memoized callbacks to prevent SidePanel re-renders
-  const handleChangeFontFamily = useCallback((font: string | undefined) => {
+  const handleChangeFontFamily = useCallback((font: string | undefined): void => {
     setConfig(prev => ({...prev, fontFamily: font}));
   }, []);
 
-  const handleChangeBackgroundColor = useCallback((c: string) => {
+  const handleChangeBackgroundColor = useCallback((c: string): void => {
     setConfig(prev => ({...prev, backgroundColor: c}));
   }, []);
 
-  const handleChangeTextColor = useCallback((c: string) => {
+  const handleChangeTextColor = useCallback((c: string): void => {
     setConfig(prev => ({...prev, textColor: c}));
   }, []);
 
-  const handleChangeDoubleLetterColor = useCallback((c: string) => {
+  const handleChangeDoubleLetterColor = useCallback((c: string): void => {
     setConfig(prev => ({...prev, doubleLetterColor: c}));
   }, []);
 
-  const handleChangeUnderlineColor = useCallback((c: string) => {
+  const handleChangeUnderlineColor = useCallback((c: string): void => {
     setConfig(prev => ({...prev, underlineColor: c}));
   }, []);
 
-  const handleChangeHardLetters = useCallback((letters: string) => {
+  const handleChangeHardLetters = useCallback((letters: string): void => {
     // Accept any Unicode letter (e.g., ê, æ) and remove duplicates; normalize to NFC
     const normalized = (letters || '').normalize('NFC');
     const uniqueLetters: string[] = [];
@@ -176,7 +174,7 @@ function App(){
     setConfig(prev => ({...prev, hardLetters: uniqueLetters.join('')}));
   }, []);
 
-  const handleChangeHardLetterExtraSpacing = useCallback((v: number) => {
+  const handleChangeHardLetterExtraSpacing = useCallback((v: number): void => {
     const clampedValue = Math.max(0, v);
     // Update live value immediately
     setLiveValues(prev => ({...prev, hardLetterExtraSpacing: clampedValue}));
@@ -219,7 +217,7 @@ function App(){
     })();
   }, []);
 
-  const handleSaveConfiguration = useCallback(async () => {
+  const handleSaveConfiguration = useCallback(async (): Promise<void> => {
     try {
       const payload = JSON.stringify({
         config,
@@ -231,7 +229,7 @@ function App(){
     }
   }, [config, brightness]);
 
-  const handleChangeWordSpacing = useCallback((v: number) => {
+  const handleChangeWordSpacing = useCallback((v: number): void => {
     const clampedValue = Math.max(0, v);
     // Update live value immediately
     setLiveValues(prev => ({...prev, wordSpacing: clampedValue}));
@@ -241,7 +239,7 @@ function App(){
     });
   }, [debouncedUpdateConfig]);
 
-  const handleChangeBaseFontSize = useCallback((v: number) => {
+  const handleChangeBaseFontSize = useCallback((v: number): void => {
     const clampedValue = Math.max(10, v);
     // Update live value immediately
     setLiveValues(prev => ({...prev, baseFontSize: clampedValue}));
@@ -251,7 +249,7 @@ function App(){
     });
   }, [debouncedUpdateConfig]);
 
-  const handleChangeMaxScrollSpeed = useCallback((v: number) => {
+  const handleChangeMaxScrollSpeed = useCallback((v: number): void => {
     const clampedValue = Math.max(0.5, Math.min(10, v));
     setLiveValues(prev => ({...prev, maxScrollSpeed: clampedValue}));
     debouncedUpdateConfig('maxScrollSpeed', clampedValue, () => {
@@ -259,7 +257,7 @@ function App(){
     });
   }, [debouncedUpdateConfig]);
 
-  const handleChangeBrightness = useCallback((v: number) => {
+  const handleChangeBrightness = useCallback((v: number): void => {
     // Update live value immediately
     setLiveValues(prev => ({...prev, brightness: v}));
     // Debounce brightness and native updates
