@@ -23,18 +23,33 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Removed import { Colors } from 'react-native/Libraries/NewAppScreen';
-// as it is no longer available or causing issues in the new version.
-// Defining simple Colors object locally as a replacement.
-const Colors = {
-  lighter: '#F3F3F3',
-  darker: '#222',
-};
+// Colors imported from constants for backwards compatibility
+const Colors = THEME_COLORS;
 
 import Reader, {ReaderConfig} from './src/components/Reader';
 import SidePanel from './src/components/SidePanel';
 import SettingsButton from './src/components/SettingsButton';
 import {setBrightness as setNativeBrightness} from './src/native/Brightness';
+import {
+  DEBOUNCE_DELAY_MS,
+  INPUT_ANIMATION_DURATION_MS,
+  INPUT_MAX_HEIGHT,
+  INPUT_FIELD_HEIGHT,
+  MIN_BASE_FONT_SIZE,
+  MIN_SCROLL_SPEED,
+  MAX_SCROLL_SPEED,
+  DEFAULT_BACKGROUND_COLOR,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_DOUBLE_LETTER_COLOR,
+  DEFAULT_UNDERLINE_COLOR,
+  DEFAULT_HARD_LETTERS,
+  DEFAULT_HARD_LETTER_SPACING,
+  DEFAULT_WORD_SPACING,
+  DEFAULT_BASE_FONT_SIZE,
+  DEFAULT_MAX_SCROLL_SPEED,
+  THEME_COLORS,
+} from './src/constants/app';
+import { STORAGE_KEY_READER_CONFIG } from './src/constants/storage';
 
 /**
  * Error logging utility
@@ -79,25 +94,25 @@ function App(){
     const expanding = !isInputExpanded;
     setIsInputExpanded(expanding);
     Keyboard.dismiss();
-    inputExpandProgress.value = withTiming(expanding ? 1 : 0, { duration: 300 });
+    inputExpandProgress.value = withTiming(expanding ? 1 : 0, { duration: INPUT_ANIMATION_DURATION_MS });
   }, [isInputExpanded, inputExpandProgress]);
 
   const inputAnimatedStyle = useAnimatedStyle(() => ({
-    maxHeight: inputExpandProgress.value * 250,
+    maxHeight: inputExpandProgress.value * INPUT_MAX_HEIGHT,
     opacity: inputExpandProgress.value,
     overflow: 'hidden' as const,
   }));
   const [config, setConfig] = useState<ReaderConfig>({
     fontFamily: undefined,
-    backgroundColor: '#FFFFFF',
-    textColor: '#111111',
-    doubleLetterColor: '#D32F2F',
-    hardLetters: 'ghkqwxyzGHKQWXYZ', // Default hard letters
-    hardLetterExtraSpacing: 2,
-    wordSpacing: 8,
-    baseFontSize: 20,
-    maxScrollSpeed: 3,
-    underlineColor: '#1976D2',
+    backgroundColor: DEFAULT_BACKGROUND_COLOR,
+    textColor: DEFAULT_TEXT_COLOR,
+    doubleLetterColor: DEFAULT_DOUBLE_LETTER_COLOR,
+    hardLetters: DEFAULT_HARD_LETTERS,
+    hardLetterExtraSpacing: DEFAULT_HARD_LETTER_SPACING,
+    wordSpacing: DEFAULT_WORD_SPACING,
+    baseFontSize: DEFAULT_BASE_FONT_SIZE,
+    maxScrollSpeed: DEFAULT_MAX_SCROLL_SPEED,
+    underlineColor: DEFAULT_UNDERLINE_COLOR,
   });
   const [brightness, setBrightness] = useState<number>(0); // overlay darkness 0-1
   
@@ -125,7 +140,7 @@ function App(){
     debounceTimers.current[key] = setTimeout(() => {
       updateFn();
       delete debounceTimers.current[key];
-    }, 100); // 100ms debounce
+    }, DEBOUNCE_DELAY_MS);
   }, []);
 
   function updatePerWordFontSize(index: number, delta: number): void {
@@ -214,7 +229,7 @@ function App(){
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem('reader_config_v1');
+        const raw = await AsyncStorage.getItem(STORAGE_KEY_READER_CONFIG);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && typeof parsed === 'object') {
@@ -256,7 +271,7 @@ function App(){
         config,
         brightness,
       });
-      await AsyncStorage.setItem('reader_config_v1', payload);
+      await AsyncStorage.setItem(STORAGE_KEY_READER_CONFIG, payload);
       showSuccessAlert('Your configuration has been saved successfully.');
     } catch (e) {
       logError('SaveConfiguration', e);
@@ -278,7 +293,7 @@ function App(){
   }, [debouncedUpdateConfig]);
 
   const handleChangeBaseFontSize = useCallback((v: number): void => {
-    const clampedValue = Math.max(10, v);
+    const clampedValue = Math.max(MIN_BASE_FONT_SIZE, v);
     // Update live value immediately
     setLiveValues(prev => ({...prev, baseFontSize: clampedValue}));
     // Debounce config update
@@ -288,7 +303,7 @@ function App(){
   }, [debouncedUpdateConfig]);
 
   const handleChangeMaxScrollSpeed = useCallback((v: number): void => {
-    const clampedValue = Math.max(0.5, Math.min(10, v));
+    const clampedValue = Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, v));
     setLiveValues(prev => ({...prev, maxScrollSpeed: clampedValue}));
     debouncedUpdateConfig('maxScrollSpeed', clampedValue, () => {
       setConfig(prev => ({...prev, maxScrollSpeed: clampedValue}));
@@ -320,14 +335,14 @@ function App(){
             <Animated.View style={inputAnimatedStyle}>
               <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
                 <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
-                <ScrollView style={{maxHeight: 200}} keyboardShouldPersistTaps="handled">
+                <ScrollView style={{maxHeight: INPUT_FIELD_HEIGHT}} keyboardShouldPersistTaps="handled">
                   <TextInput
                     ref={textInputRef}
                     value={inputText}
                     onChangeText={setInputText}
                     multiline
                     placeholder="Paste text here..."
-                    style={{minHeight: 200, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
+                    style={{minHeight: INPUT_FIELD_HEIGHT, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
                   />
                 </ScrollView>
               </View>
@@ -346,7 +361,7 @@ function App(){
                 onAdjustSelectedWordScale={(delta) => {
                   if (selectedIndex != null) updatePerWordFontSize(selectedIndex, delta);
                 }}
-                onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(10, prev.baseFontSize + delta)}))}
+                onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(MIN_BASE_FONT_SIZE, prev.baseFontSize + delta)}))}
                 onResetSelectedWordScale={resetSelectedWordScale}
                 onResetWordScaleByIndex={resetWordScaleByIndex}
               />

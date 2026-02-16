@@ -3,6 +3,14 @@ import {Text, View, StyleSheet, Pressable, useWindowDimensions} from 'react-nati
 import { useSharedValue, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import TextTicker, { TextTickerHandle } from './TextTicker';
 import Controller, { ControllerHandle } from './Controller';
+import {
+  DOUBLE_TAP_THRESHOLD_MS,
+  PINCH_SENSITIVITY_WORD_SPACING,
+  PINCH_SENSITIVITY_FONT_SIZE,
+  TICKER_BAND_HEIGHT,
+  MIN_FONT_SIZE,
+  DEFAULT_HARD_LETTERS,
+} from '../constants/app';
 
 export type ReaderConfig = {
   fontFamily: string | undefined;
@@ -27,9 +35,6 @@ type Props = {
   onResetSelectedWordScale?: () => void;
   onResetWordScaleByIndex?: (index: number) => void;
 };
-
-// Default hard letters (will be overridden by config)
-const DEFAULT_HARD_LETTERS = 'ghkqwxyzGHKQWXYZ';
 
 function splitIntoWords(text: string): string[] {
   // Split on any whitespace, collapse multiples; keep only words
@@ -65,12 +70,12 @@ const Word = React.memo(({ word, index, isSelected, isCentered, config, fontSize
   const doubleIndices = findDoubleLetterIndices(word);
   const chars = word.split('');
   const hasCustomScale = fontSizeDelta !== 0;
-  const effectiveFontSize = Math.max(5, config.baseFontSize + fontSizeDelta);
+  const effectiveFontSize = Math.max(MIN_FONT_SIZE, config.baseFontSize + fontSizeDelta);
 
   const lastTap = useRef<number>(0);
   const handlePress = () => {
     const now = Date.now();
-    if (now - lastTap.current < 300) {
+    if (now - lastTap.current < DOUBLE_TAP_THRESHOLD_MS) {
       onReset?.(index);
       lastTap.current = 0;
     } else {
@@ -212,11 +217,11 @@ export const Reader: React.FC<Props> = ({
     if (selectedWordIndex !== null) {
       if (onAdjustSelectedWordScale) {
         // Adjust sensitivity: delta is small (e.g. 0.05), spacing is px.
-        onAdjustSelectedWordScale(delta * 20); 
+        onAdjustSelectedWordScale(delta * PINCH_SENSITIVITY_WORD_SPACING); 
       }
     } else {
       if (onAdjustFontSize) {
-        onAdjustFontSize(delta * 10);
+        onAdjustFontSize(delta * PINCH_SENSITIVITY_FONT_SIZE);
       }
     }
   };
@@ -281,7 +286,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   band: {
-    height: 100, // Thicker band
+    height: TICKER_BAND_HEIGHT,
     width: '100%',
     justifyContent: 'center',
     borderTopWidth: 2,

@@ -37,19 +37,21 @@
 ---
 
 ### 3. Extract Magic Numbers to Constants
-- [ ] Create `src/constants/app.ts` file
-- [ ] Extract constants:
-  - [ ] `300` - Double-tap threshold ([Reader.tsx:69](../src/components/Reader.tsx#L69))
-  - [ ] `100` - Debounce delay ([App.tsx:84](../App.tsx#L84))
-  - [ ] `20`, `10` - Pinch sensitivity multipliers ([Reader.tsx:160,164](../src/components/Reader.tsx#L160))
-  - [ ] `100` - Ticker band height ([Reader.tsx:226](../src/components/Reader.tsx#L226))
-  - [ ] `5`, `10`, `20` - Font size constraints
-  - [ ] Color values (default background, text, double letter colors)
-- [ ] Create `src/constants/storage.ts` for AsyncStorage keys
-  - [ ] `'reader_config_v1'` storage key
+- [x] Create `src/constants/app.ts` file
+- [x] Extract constants:
+  - [x] `300` - Double-tap threshold → `DOUBLE_TAP_THRESHOLD_MS`
+  - [x] `100` - Debounce delay → `DEBOUNCE_DELAY_MS`
+  - [x] `20`, `10` - Pinch sensitivity multipliers → `PINCH_SENSITIVITY_WORD_SPACING`, `PINCH_SENSITIVITY_FONT_SIZE`
+  - [x] `100` - Ticker band height → `TICKER_BAND_HEIGHT`
+  - [x] `5`, `10`, `20` - Font size constraints → `MIN_FONT_SIZE`, `MIN_BASE_FONT_SIZE`, `DEFAULT_BASE_FONT_SIZE`
+  - [x] Color values → `DEFAULT_BACKGROUND_COLOR`, `DEFAULT_TEXT_COLOR`, `DEFAULT_DOUBLE_LETTER_COLOR`, etc.
+- [x] Create `src/constants/storage.ts` for AsyncStorage keys
+  - [x] `'reader_config_v1'` → `STORAGE_KEY_READER_CONFIG`
 
 **Estimated Time:** 45 minutes
 **Impact:** Better maintainability, easier to adjust values, clearer intent
+
+**Completed:** Extracted 25+ magic numbers to well-documented constants in `src/constants/app.ts` and `src/constants/storage.ts`. All values now have descriptive names and documentation.
 
 ---
 
@@ -237,10 +239,10 @@
 
 | Priority | Tasks Complete | Total Tasks | Percentage |
 |----------|----------------|-------------|------------|
-| 🔴 High   | 3              | 4           | 75%        |
+| 🔴 High   | 4              | 4           | 100%       |
 | 🟡 Medium | 0              | 5           | 0%         |
 | 🟢 Low    | 0              | 5           | 0%         |
-| **Total** | **3**          | **14**      | **21%**    |
+| **Total** | **4**          | **14**      | **29%**    |
 
 ---
 
