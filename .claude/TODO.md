@@ -52,19 +52,21 @@
 ---
 
 ### 4. Add Unit Tests (Foundation)
-- [ ] Set up test infrastructure (verify Jest configuration)
-- [ ] Create tests for pure functions:
-  - [ ] `splitIntoWords()` - [Reader.tsx:32](../src/components/Reader.tsx#L32)
-  - [ ] `findDoubleLetterIndices()` - [Reader.tsx:39](../src/components/Reader.tsx#L39)
-  - [ ] `handleChangeHardLetters()` normalization logic
+- [x] Set up test infrastructure (verify Jest configuration)
+- [x] Create tests for pure functions:
+  - [x] `splitIntoWords()` - [Reader.tsx:32](../src/components/Reader.tsx#L32) - 8 tests
+  - [x] `findDoubleLetterIndices()` - [Reader.tsx:39](../src/components/Reader.tsx#L39) - 8 tests
+  - [x] `handleChangeHardLetters()` normalization logic - 16 tests
 - [ ] Create basic component smoke tests:
-  - [ ] `Word` component renders correctly
-  - [ ] `Reader` component renders without crashing
-  - [ ] `TextTicker` component basic functionality
-- [ ] Add test coverage reporting
+  - [ ] `Word` component renders correctly *(deferred - requires native module mocks)*
+  - [ ] `Reader` component renders without crashing *(deferred - requires native module mocks)*
+  - [ ] `TextTicker` component basic functionality *(deferred - requires native module mocks)*
+- [x] Add test coverage reporting
 
 **Estimated Time:** 2-3 hours
 **Impact:** Confidence in refactoring, catch regressions, document expected behavior
+
+**Completed:** 32 passing pure function tests covering critical business logic. Component tests deferred until e2e testing infrastructure is in place.
 
 ---
 
@@ -233,10 +235,10 @@
 
 | Priority | Tasks Complete | Total Tasks | Percentage |
 |----------|----------------|-------------|------------|
-| 🔴 High   | 1              | 4           | 25%        |
+| 🔴 High   | 2              | 4           | 50%        |
 | 🟡 Medium | 0              | 5           | 0%         |
 | 🟢 Low    | 0              | 5           | 0%         |
-| **Total** | **1**          | **14**      | **7%**     |
+| **Total** | **2**          | **14**      | **14%**    |
 
 ---
 

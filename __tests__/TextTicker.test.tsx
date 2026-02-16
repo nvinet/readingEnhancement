@@ -1,14 +1,14 @@
 /**
  * @format
  * 
- * App Component Tests
+ * TextTicker Component Tests
  * 
- * Note: Full App render tests require complex native module mocking
- * (reanimated, gesture-handler, async-storage, reanimated-color-picker).
+ * Note: Full component render tests require complex native module mocking 
+ * (react-native-reanimated, react-native-gesture-handler).
  * Component integration tests should be added when e2e testing infrastructure is set up.
  */
 
-describe('App component', () => {
+describe('TextTicker component', () => {
   it('placeholder test - component requires native modules', () => {
     expect(true).toBe(true);
   });

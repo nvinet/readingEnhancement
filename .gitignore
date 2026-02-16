@@ -70,6 +70,7 @@ yarn-error.log
 
 # testing
 /coverage
+/coverage/
 
 # Yarn
 .yarn/*
