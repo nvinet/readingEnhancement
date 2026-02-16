@@ -47,34 +47,26 @@ export FASTLANE_TEAM_ID="XXXXXXXXXX"
 
 ### 2. Code Signing
 
-You have two options:
+✅ **Already configured!** Your project uses **Xcode Managed (Automatic) signing** with Team ID `78Z4BK3NWT`.
 
-#### Option A: Manual Code Signing (Simpler)
-- Keep your existing certificates and provisioning profiles
-- Update the `provisioningProfiles` section in `fastlane/Fastfile` with your actual provisioning profile name
-- Find it in Xcode → Preferences → Accounts → Team → Manage Certificates
+No additional setup needed - Xcode will automatically handle certificates and provisioning profiles when building for TestFlight.
 
-#### Option B: Fastlane Match (Recommended for teams)
-- Run `bundle exec fastlane match init` to set up automatic code signing
-- Follow the prompts to store certificates in a private Git repo
-- Update `Fastfile` to use `match` instead of manual profiles
+### 3. App Store Connect API Key (Optional)
 
-### 3. App Store Connect API Key (Optional but recommended)
-
-For better authentication, create an API key:
+For automation without entering passwords, you can create an API key:
 
 1. Go to App Store Connect → Users and Access → Keys
 2. Create a new API Key with "App Manager" role
 3. Download the `.p8` file
-4. Add to `Appfile`:
+4. Add to `fastlane/.env`:
 
-```ruby
-app_store_connect_api_key(
-  key_id: "YOUR_KEY_ID",
-  issuer_id: "YOUR_ISSUER_ID",
-  key_filepath: "./fastlane/AuthKey_XXXXXXXXXX.p8"
-)
+```bash
+APP_STORE_CONNECT_API_KEY_ID=YOUR_KEY_ID
+APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
+APP_STORE_CONNECT_API_KEY_PATH=./fastlane/AuthKey_XXXXXXXXXX.p8
 ```
+
+**Not required for now** - You can authenticate with your Apple ID password the first time.
 
 ## 📋 What the Pipeline Does
 

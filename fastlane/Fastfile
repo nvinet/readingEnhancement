@@ -25,14 +25,14 @@ platform :ios do
     cocoapods(podfile: "ios/Podfile")
     
     # Build the iOS app
+    # Using Xcode Managed (Automatic) signing - no manual provisioning profile needed
     build_app(
       workspace: "ios/readingEnhancement.xcworkspace",
       scheme: "readingEnhancement",
       export_method: "app-store",
       export_options: {
-        provisioningProfiles: {
-          "com.nvinet.readingEnhancement" => "match AppStore com.nvinet.readingEnhancement" # Update with your provisioning profile name
-        }
+        signingStyle: "automatic",
+        teamID: "78Z4BK3NWT"
       }
     )
     
