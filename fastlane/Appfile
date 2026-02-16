@@ -1,13 +1,15 @@
 # App identifier
 app_identifier("com.nvinet.readingEnhancement")
 
-# Apple ID for App Store Connect
-# apple_id("your-email@example.com") # Uncomment and set your Apple ID
+# Apple ID and Team ID loaded from environment variables
+# Set these in your shell profile or use a .env file (NOT committed to git)
+# FASTLANE_USER=your-email@example.com
+# FASTLANE_TEAM_ID=XXXXXXXXXX
+# FASTLANE_ITC_TEAM_ID=XXXXXXXXXX (optional, if you have multiple teams)
 
-# Team ID (you can find this in App Store Connect or Apple Developer Portal)
-# team_id("XXXXXXXXXX") # Uncomment and set your team ID
-
-# itc_team_id("XXXXXXXXXX") # Uncomment if you have multiple teams
+apple_id(ENV["FASTLANE_USER"])
+team_id(ENV["FASTLANE_TEAM_ID"])
+itc_team_id(ENV["FASTLANE_ITC_TEAM_ID"]) if ENV["FASTLANE_ITC_TEAM_ID"]
 
 # For more information about the Appfile, see:
 # https://docs.fastlane.tools/advanced/#appfile

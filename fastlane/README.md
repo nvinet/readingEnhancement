@@ -14,17 +14,36 @@ yarn deploy:testflight
 
 Before your first deployment, you need to configure:
 
-### 1. Apple Developer Credentials
+### 1. Apple Developer Credentials (Environment Variables)
 
-Edit `fastlane/Appfile` and set:
+**🔒 SECURITY:** Credentials are stored in environment variables, NOT in git!
 
-- `apple_id`: Your Apple ID email
-- `team_id`: Your Apple Developer Team ID (find in App Store Connect)
+**Option A: Use a .env file (Recommended)**
 
-```ruby
-apple_id("your-email@example.com")
-team_id("XXXXXXXXXX")
+1. Copy the example file:
+   ```bash
+   cp fastlane/.env.example fastlane/.env
+   ```
+
+2. Edit `fastlane/.env` and add your credentials:
+   ```bash
+   FASTLANE_USER=your-email@example.com
+   FASTLANE_TEAM_ID=XXXXXXXXXX
+   ```
+
+3. The `.env` file is gitignored and will never be committed
+
+**Option B: Export in your shell**
+
+Add to your `~/.zshrc` or `~/.bash_profile`:
+```bash
+export FASTLANE_USER="your-email@example.com"
+export FASTLANE_TEAM_ID="XXXXXXXXXX"
 ```
+
+**Finding your Team ID:**
+- Go to App Store Connect → Membership
+- Or Apple Developer → Membership → Team ID
 
 ### 2. Code Signing
 
