@@ -1,11 +1,27 @@
-import React, { useState } from 'react';
-import {ScrollView, Text, View, Pressable, Modal, TextInput, TouchableOpacity, useWindowDimensions} from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withTiming } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FontPicker from "./FontPicker";
-import { FONT_OPTIONS } from './FontOptions';
-import MemoizedSliderField from './MemoizedSliderField';
+import React, {useState} from 'react';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
 import ColorPickerField from './ColorPickerField';
+import {FONT_OPTIONS} from './FontOptions';
+import FontPicker from './FontPicker';
+import MemoizedSliderField from './MemoizedSliderField';
 
 export type SidePanelProps = {
   visible: boolean;
@@ -98,84 +114,39 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     return null;
   }
 
+  const panelStyle = [
+    styles.panel,
+    {
+      width: isWide ? '40%' : '85%',
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom,
+    },
+    panelAnimatedStyle,
+  ];
+
   return (
     <Modal
       visible={true}
       transparent={true}
       animationType="none"
-      onRequestClose={onClose}
-    >
-      <View style={{
-        flex: 1,
-        justifyContent: 'flex-end',
-        alignItems: 'flex-end',
-      }}>
+      onRequestClose={onClose}>
+      <View style={styles.modalContainer}>
         {/* Backdrop - tap to close */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-            },
-            backdropAnimatedStyle,
-          ]}
-        >
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={onClose}
-          />
+        <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
+          <Pressable style={styles.backdropPressable} onPress={onClose} />
         </Animated.View>
 
         {/* Settings Panel */}
-        <Animated.View style={[
-          {
-            width: isWide ? '40%' : '85%',
-            maxWidth: 400,
-            height: '100%',
-            backgroundColor: 'white',
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-            shadowColor: '#000',
-            shadowOffset: {
-              width: -2,
-              height: 0,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-          },
-          panelAnimatedStyle,
-        ]}>
+        <Animated.View style={panelStyle}>
           {/* Header with close button */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: '#ddd',
-          }}>
-            <Text style={{fontSize: 20, fontWeight: '700'}}>Settings</Text>
-            <Pressable
-              onPress={onClose}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: '#f5f5f5',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{fontSize: 20, fontWeight: '600', color: '#666'}}>×</Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Settings</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>×</Text>
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{padding: 16, paddingBottom: 72}}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
             <FontPicker label="Font" options={FONT_OPTIONS} value={fontFamily} onChange={onChangeFontFamily} />
 
             <ColorPickerField
@@ -202,44 +173,23 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               onChange={onChangeUnderlineColor}
             />
 
-            <View style={{marginBottom: 12}}>
-              <Text style={{fontWeight: '600', marginBottom: 6}}>Hard Letters :</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>Hard Letters :</Text>
               <TextInput
                 value={hardLetters}
                 onChangeText={onChangeHardLetters}
                 placeholder="Enter letters like: ghkqwxyzGHKQWXYZ"
-                style={{
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  borderRadius: 8,
-                  backgroundColor: '#FAFAFA',
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                }}
+                style={styles.hardLettersInput}
                 multiline={false}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               {hardLetters && (
-                <View style={{
-                  marginTop: 6,
-                  padding: 8,
-                  backgroundColor: '#e3f2fd',
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: '#1976D2',
-                }}>
-                  <Text style={{fontSize: 12, color: '#1976D2', fontWeight: '600'}}>
+                <View style={styles.activeLettersBox}>
+                  <Text style={styles.activeLettersLabel}>
                     Active Hard Letters:
                   </Text>
-                  <Text style={{
-                    fontSize: 14,
-                    fontFamily: 'monospace',
-                    color: '#1976D2',
-                    letterSpacing: 2,
-                    marginTop: 2,
-                  }}>
+                  <Text style={styles.activeLettersText}>
                     {hardLetters.split('').join(' ')}
                   </Text>
                 </View>
@@ -292,46 +242,24 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               displayMultiplier={100}
             />
 
-            <View style={{marginBottom: 12}}>
+            <View style={styles.fieldContainer}>
               <TouchableOpacity
                 onPress={onResetAllWordScales}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 16,
-                  backgroundColor: '#ef5350',
-                  borderRadius: 8,
-                  alignSelf: 'flex-start',
-                }}
-              >
-                <Text style={{color: 'white', fontWeight: '600'}}>Reset Custom Sizes</Text>
+                style={styles.resetButton}>
+                <Text style={styles.resetButtonText}>Reset Custom Sizes</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
 
-
-
           {/* Save Button - Fixed at bottom */}
-          <View style={{
-            padding: 16,
-            borderTopWidth: 1,
-            borderTopColor: '#eee',
-            backgroundColor: 'white',
-          }}>
+          <View style={styles.saveButtonContainer}>
             <TouchableOpacity
               onPress={() => {
                 onSave();
                 onClose();
               }}
-              style={{
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                backgroundColor: '#1976D2',
-                borderRadius: 8,
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Text style={{color: 'white', fontWeight: '700', fontSize: 16}}>Save Configuration</Text>
+              style={styles.saveButton}>
+              <Text style={styles.saveButtonText}>Save Configuration</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -340,5 +268,132 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     
   );
 };
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  backdropPressable: {
+    flex: 1,
+  },
+  panel: {
+    maxWidth: 400,
+    height: '100%',
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: -2,
+      height: 0,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#666',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 72,
+  },
+  fieldContainer: {
+    marginBottom: 12,
+  },
+  fieldLabel: {
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  hardLettersInput: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#FAFAFA',
+    fontFamily: 'monospace',
+    fontSize: 14,
+  },
+  activeLettersBox: {
+    marginTop: 6,
+    padding: 8,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#1976D2',
+  },
+  activeLettersLabel: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '600',
+  },
+  activeLettersText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#1976D2',
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  resetButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#ef5350',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  resetButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  saveButtonContainer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: 'white',
+  },
+  saveButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#1976D2',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+});
 
 export default SidePanel;

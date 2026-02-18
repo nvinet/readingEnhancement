@@ -99,34 +99,40 @@ export const MAX_SCROLL_SPEED = 10;
 // ============================================================================
 // COLOR DEFAULTS
 // ============================================================================
+// NOTE: Color constants have been moved to colors.ts
+// Re-exporting here for backwards compatibility
+
+import { READER_COLORS, THEME_COLORS } from './colors';
 
 /**
  * Default background color
+ * @deprecated Use READER_COLORS.BACKGROUND from colors.ts
  */
-export const DEFAULT_BACKGROUND_COLOR = '#FFFFFF';
+export const DEFAULT_BACKGROUND_COLOR = READER_COLORS.BACKGROUND;
 
 /**
  * Default text color
+ * @deprecated Use READER_COLORS.TEXT from colors.ts
  */
-export const DEFAULT_TEXT_COLOR = '#111111';
+export const DEFAULT_TEXT_COLOR = READER_COLORS.TEXT;
 
 /**
  * Default color for highlighting double letters
+ * @deprecated Use READER_COLORS.DOUBLE_LETTER from colors.ts
  */
-export const DEFAULT_DOUBLE_LETTER_COLOR = '#D32F2F';
+export const DEFAULT_DOUBLE_LETTER_COLOR = READER_COLORS.DOUBLE_LETTER;
 
 /**
  * Default underline color for centered word
+ * @deprecated Use READER_COLORS.UNDERLINE from colors.ts
  */
-export const DEFAULT_UNDERLINE_COLOR = '#1976D2';
+export const DEFAULT_UNDERLINE_COLOR = READER_COLORS.UNDERLINE;
 
 /**
  * Default theme colors (for backwards compatibility with app shell)
+ * @deprecated Use THEME_COLORS from colors.ts
  */
-export const THEME_COLORS = {
-  lighter: '#F3F3F3',
-  darker: '#222',
-} as const;
+export { THEME_COLORS };
 
 // ============================================================================
 // TYPOGRAPHY

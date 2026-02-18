@@ -5,51 +5,50 @@
  * @format
  */
 
-import React, {useMemo, useState, useCallback, useRef, useEffect} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  StatusBar,
-  Text,
-  TextInput,
-  useColorScheme,
-  View,
-  ScrollView,
-  TouchableWithoutFeedback,
+  Alert,
   Keyboard,
   Pressable,
-  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+  useColorScheme,
 } from 'react-native';
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Colors imported from constants for backwards compatibility
-const Colors = THEME_COLORS;
+import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 
 import Reader, {ReaderConfig} from './src/components/Reader';
-import SidePanel from './src/components/SidePanel';
 import SettingsButton from './src/components/SettingsButton';
-import {setBrightness as setNativeBrightness} from './src/native/Brightness';
+import SidePanel from './src/components/SidePanel';
 import {
   DEBOUNCE_DELAY_MS,
+  DEFAULT_BASE_FONT_SIZE,
+  DEFAULT_HARD_LETTER_SPACING,
+  DEFAULT_HARD_LETTERS,
+  DEFAULT_MAX_SCROLL_SPEED,
+  DEFAULT_WORD_SPACING,
   INPUT_ANIMATION_DURATION_MS,
-  INPUT_MAX_HEIGHT,
   INPUT_FIELD_HEIGHT,
+  INPUT_MAX_HEIGHT,
+  MAX_SCROLL_SPEED,
   MIN_BASE_FONT_SIZE,
   MIN_SCROLL_SPEED,
-  MAX_SCROLL_SPEED,
-  DEFAULT_BACKGROUND_COLOR,
-  DEFAULT_TEXT_COLOR,
-  DEFAULT_DOUBLE_LETTER_COLOR,
-  DEFAULT_UNDERLINE_COLOR,
-  DEFAULT_HARD_LETTERS,
-  DEFAULT_HARD_LETTER_SPACING,
-  DEFAULT_WORD_SPACING,
-  DEFAULT_BASE_FONT_SIZE,
-  DEFAULT_MAX_SCROLL_SPEED,
-  THEME_COLORS,
 } from './src/constants/app';
-import { STORAGE_KEY_READER_CONFIG } from './src/constants/storage';
+import {
+  READER_COLORS,
+  THEME_COLORS,
+  UI_COLORS,
+} from './src/constants/colors';
+import {ALERTS, HELP_TEXT} from './src/constants/messages';
+import {STORAGE_KEY_READER_CONFIG} from './src/constants/storage';
+import {setBrightness as setNativeBrightness} from './src/native/Brightness';
 
 /**
  * Error logging utility
@@ -66,22 +65,25 @@ function logError(context: string, error: unknown): void {
  * Show user-facing error alert
  */
 function showErrorAlert(title: string, message: string): void {
-  Alert.alert(title, message, [{ text: 'OK', style: 'default' }]);
+  Alert.alert(title, message, [{text: 'OK', style: 'default'}]);
 }
 
 /**
  * Show success alert
  */
 function showSuccessAlert(message: string): void {
-  Alert.alert('Success', message, [{ text: 'OK', style: 'default' }]);
+  Alert.alert('Success', message, [{text: 'OK', style: 'default'}]);
 }
 
-function App(){
+function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: isDarkMode ? THEME_COLORS.darker : THEME_COLORS.lighter,
+    }),
+    [isDarkMode]
+  );
 
   const [inputText, setInputText] = useState<string>('');
   const [perWordFontSizeOverrides, setPerWordFontSizeOverrides] = useState<Record<number, number>>({});
@@ -104,15 +106,15 @@ function App(){
   }));
   const [config, setConfig] = useState<ReaderConfig>({
     fontFamily: undefined,
-    backgroundColor: DEFAULT_BACKGROUND_COLOR,
-    textColor: DEFAULT_TEXT_COLOR,
-    doubleLetterColor: DEFAULT_DOUBLE_LETTER_COLOR,
+    backgroundColor: READER_COLORS.BACKGROUND,
+    textColor: READER_COLORS.TEXT,
+    doubleLetterColor: READER_COLORS.DOUBLE_LETTER,
     hardLetters: DEFAULT_HARD_LETTERS,
     hardLetterExtraSpacing: DEFAULT_HARD_LETTER_SPACING,
     wordSpacing: DEFAULT_WORD_SPACING,
     baseFontSize: DEFAULT_BASE_FONT_SIZE,
     maxScrollSpeed: DEFAULT_MAX_SCROLL_SPEED,
-    underlineColor: DEFAULT_UNDERLINE_COLOR,
+    underlineColor: READER_COLORS.UNDERLINE,
   });
   const [brightness, setBrightness] = useState<number>(0); // overlay darkness 0-1
   
@@ -172,15 +174,13 @@ function App(){
     setPerWordFontSizeOverrides({});
   }
 
-  const overlayStyle = useMemo(() => ({
-    backgroundColor: `rgba(0,0,0,${liveValues.brightness})`,
-    position: 'absolute' as const,
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    pointerEvents: 'none' as const,
-  }), [liveValues.brightness]);
+  const overlayStyle = useMemo(
+    () => ({
+      backgroundColor: `rgba(0,0,0,${liveValues.brightness})`,
+      ...styles.overlay,
+    }),
+    [liveValues.brightness]
+  );
 
   // Memoized callbacks to prevent SidePanel re-renders
   const handleChangeFontFamily = useCallback((font: string | undefined): void => {
@@ -258,8 +258,8 @@ function App(){
       } catch (e) {
         logError('LoadConfiguration', e);
         showErrorAlert(
-          'Configuration Load Failed',
-          'Could not load your saved settings. Using default configuration.'
+          ALERTS.ERROR.LOAD_FAILED.title,
+          ALERTS.ERROR.LOAD_FAILED.message
         );
       }
     })();
@@ -272,12 +272,12 @@ function App(){
         brightness,
       });
       await AsyncStorage.setItem(STORAGE_KEY_READER_CONFIG, payload);
-      showSuccessAlert('Your configuration has been saved successfully.');
+      showSuccessAlert(ALERTS.SUCCESS.CONFIGURATION_SAVED);
     } catch (e) {
       logError('SaveConfiguration', e);
       showErrorAlert(
-        'Save Failed',
-        'Could not save your configuration. Please try again.'
+        ALERTS.ERROR.SAVE_FAILED.title,
+        ALERTS.ERROR.SAVE_FAILED.message
       );
     }
   }, [config, brightness]);
@@ -325,95 +325,96 @@ function App(){
     });
   }, [debouncedUpdateConfig]);
 
+  const toggleInputButtonStyle = useMemo(
+    () => [
+      styles.toggleInputButton,
+      {backgroundColor: isInputExpanded ? UI_COLORS.BUTTON_EXPANDED : UI_COLORS.BUTTON_COLLAPSED},
+    ],
+    [isInputExpanded]
+  );
+
+  const containerStyle = useMemo(
+    () => [styles.container, {backgroundColor: config.backgroundColor}],
+    [config.backgroundColor]
+  );
+
+  const safeAreaStyle = useMemo(
+    () => [styles.safeArea, {backgroundColor: config.backgroundColor}],
+    [config.backgroundColor]
+  );
+
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{flex: 1}}>
-        <SafeAreaView style={{'flex': 1, 'backgroundColor': config.backgroundColor}}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={backgroundStyle.backgroundColor} />
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={{flex: 1, backgroundColor: config.backgroundColor, marginTop: 50}}>
-            <Animated.View style={inputAnimatedStyle}>
-              <View style={{padding: 12, borderBottomWidth: 1, borderBottomColor: '#ddd'}}>
-                <Text style={{fontWeight: '700', marginBottom: 6}}>Paste or type text:</Text>
-                <ScrollView style={{maxHeight: INPUT_FIELD_HEIGHT}} keyboardShouldPersistTaps="handled">
-                  <TextInput
-                    ref={textInputRef}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    multiline
-                    placeholder="Paste text here..."
-                    style={{minHeight: INPUT_FIELD_HEIGHT, padding: 8, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, backgroundColor: '#FAFAFA', textAlignVertical: 'top'}}
-                  />
-                </ScrollView>
-              </View>
-            </Animated.View>
-            <View style={{flex: 1, padding: 12}}>
-              <Reader
-                text={inputText}
-                config={config}
-                perWordFontSizeOverrides={perWordFontSizeOverrides}
-                onSelectWordIndex={(idx) => {
-                  if (idx === null) {
-                    Keyboard.dismiss();
+      <GestureHandlerRootView style={styles.flex}>
+        <SafeAreaView style={safeAreaStyle}>
+          <StatusBar
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+            backgroundColor={backgroundStyle.backgroundColor}
+          />
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={containerStyle}>
+              <Animated.View style={inputAnimatedStyle}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>{HELP_TEXT.INPUT_LABEL}</Text>
+                  <ScrollView
+                    style={styles.inputScrollView}
+                    keyboardShouldPersistTaps="handled">
+                    <TextInput
+                      ref={textInputRef}
+                      value={inputText}
+                      onChangeText={setInputText}
+                      multiline
+                      placeholder={HELP_TEXT.INPUT_PLACEHOLDER}
+                      style={styles.textInput}
+                    />
+                  </ScrollView>
+                </View>
+              </Animated.View>
+              <View style={styles.readerContainer}>
+                <Reader
+                  text={inputText}
+                  config={config}
+                  perWordFontSizeOverrides={perWordFontSizeOverrides}
+                  onSelectWordIndex={(idx) => {
+                    if (idx === null) {
+                      Keyboard.dismiss();
+                    }
+                    setSelectedIndex(idx);
+                  }}
+                  onAdjustSelectedWordScale={(delta) => {
+                    if (selectedIndex != null)
+                      updatePerWordFontSize(selectedIndex, delta);
+                  }}
+                  onAdjustFontSize={(delta) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      baseFontSize: Math.max(
+                        MIN_BASE_FONT_SIZE,
+                        prev.baseFontSize + delta
+                      ),
+                    }))
                   }
-                  setSelectedIndex(idx);
-                }}
-                onAdjustSelectedWordScale={(delta) => {
-                  if (selectedIndex != null) updatePerWordFontSize(selectedIndex, delta);
-                }}
-                onAdjustFontSize={(delta) => setConfig(prev => ({...prev, baseFontSize: Math.max(MIN_BASE_FONT_SIZE, prev.baseFontSize + delta)}))}
-                onResetSelectedWordScale={resetSelectedWordScale}
-                onResetWordScaleByIndex={resetWordScaleByIndex}
-              />
+                  onResetSelectedWordScale={resetSelectedWordScale}
+                  onResetWordScaleByIndex={resetWordScaleByIndex}
+                />
+              </View>
+              <View style={overlayStyle} />
             </View>
-            <View style={overlayStyle} />
-          </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
 
-        <Pressable
-          onPress={toggleInput}
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 16,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: isInputExpanded ? '#757575' : '#1976D2',
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-            zIndex: 1000,
-          }}
-        >
-          <View style={{
-            width: 18,
-            height: 18,
-            transform: [{ rotate: '-45deg' }],
-            justifyContent: 'flex-end',
-          }}>
-            <View style={{ width: 3, height: 14, backgroundColor: 'white', borderRadius: 1 }} />
-            <View style={{
-              width: 0,
-              height: 0,
-              borderLeftWidth: 1.5,
-              borderRightWidth: 1.5,
-              borderTopWidth: 4,
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
-              borderTopColor: 'white',
-            }} />
-          </View>
-        </Pressable>
+          <Pressable onPress={toggleInput} style={toggleInputButtonStyle}>
+            <View style={styles.toggleInputIcon}>
+              <View style={styles.toggleInputIconLine} />
+              <View style={styles.toggleInputIconArrow} />
+            </View>
+          </Pressable>
 
-        <SettingsButton onPress={() => {
-          textInputRef.current?.blur();
-          setIsPanelVisible(true);
-        }} />
+          <SettingsButton
+            onPress={() => {
+              textInputRef.current?.blur();
+              setIsPanelVisible(true);
+            }}
+          />
 
         <SidePanel
           visible={isPanelVisible}
@@ -448,5 +449,89 @@ function App(){
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    marginTop: 50,
+  },
+  inputContainer: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: UI_COLORS.BORDER,
+  },
+  inputLabel: {
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  inputScrollView: {
+    maxHeight: INPUT_FIELD_HEIGHT,
+  },
+  textInput: {
+    minHeight: INPUT_FIELD_HEIGHT,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: UI_COLORS.BORDER,
+    borderRadius: 8,
+    backgroundColor: UI_COLORS.INPUT_BACKGROUND,
+    textAlignVertical: 'top',
+  },
+  readerContainer: {
+    flex: 1,
+    padding: 12,
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  toggleInputButton: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: UI_COLORS.SHADOW,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  toggleInputIcon: {
+    width: 18,
+    height: 18,
+    transform: [{rotate: '-45deg'}],
+    justifyContent: 'flex-end',
+  },
+  toggleInputIconLine: {
+    width: 3,
+    height: 14,
+    backgroundColor: 'white',
+    borderRadius: 1,
+  },
+  toggleInputIconArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderTopWidth: 4,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'white',
+  },
+});
 
 export default App;

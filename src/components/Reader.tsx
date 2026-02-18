@@ -1,16 +1,19 @@
-import React, {useMemo, useState, useRef, useCallback} from 'react';
-import {Text, View, StyleSheet, Pressable, useWindowDimensions} from 'react-native';
-import { useSharedValue, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import TextTicker, { TextTickerHandle } from './TextTicker';
-import Controller, { ControllerHandle } from './Controller';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
+import {Pressable, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
+import {runOnJS, useAnimatedReaction, useSharedValue} from 'react-native-reanimated';
+
+import Controller, {ControllerHandle} from './Controller';
+import TextTicker, {TextTickerHandle} from './TextTicker';
 import {
-  DOUBLE_TAP_THRESHOLD_MS,
-  PINCH_SENSITIVITY_WORD_SPACING,
-  PINCH_SENSITIVITY_FONT_SIZE,
-  TICKER_BAND_HEIGHT,
-  MIN_FONT_SIZE,
   DEFAULT_HARD_LETTERS,
+  DOUBLE_TAP_THRESHOLD_MS,
+  MIN_FONT_SIZE,
+  PINCH_SENSITIVITY_FONT_SIZE,
+  PINCH_SENSITIVITY_WORD_SPACING,
+  TICKER_BAND_HEIGHT,
 } from '../constants/app';
+import {UI_COLORS} from '../constants/colors';
+import {HELP_TEXT} from '../constants/messages';
 
 export type ReaderConfig = {
   fontFamily: string | undefined;
@@ -84,68 +87,52 @@ const Word = React.memo(({ word, index, isSelected, isCentered, config, fontSize
     }
   };
 
+  const wordContainerStyle = [
+    wordStyles.wordContainer,
+    {marginRight: config.wordSpacing},
+    isSelected && wordStyles.wordContainerSelected,
+    isSelected && {
+      borderRadius: 100,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+    },
+  ];
+
+  const underlineStyle = [
+    wordStyles.underline,
+    {backgroundColor: config.underlineColor},
+  ];
+
   return (
     <Pressable
       onPress={handlePress}
       onLayout={(e) => {
-        const { x, width } = e.nativeEvent.layout;
+        const {x, width} = e.nativeEvent.layout;
         onWordLayout?.(x, width);
       }}
-        style={{
-          flexDirection: 'row',
-          marginRight: config.wordSpacing,
-          alignItems: 'center',
-          backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.2)' : 'transparent',
-          borderRadius: isSelected ? 100 : 4,
-          paddingHorizontal: isSelected ? 20 : 0,
-          paddingVertical: isSelected ? 10 : 0,
-        }}
-      >
-        {chars.map((ch, i) => {
-          const isDoubleColored = doubleIndices.includes(i);
-          const isHard = hardLettersSet.has(ch);
-          const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
+      style={wordContainerStyle}>
+      {chars.map((ch, i) => {
+        const isDoubleColored = doubleIndices.includes(i);
+        const isHard = hardLettersSet.has(ch);
+        const hardLetterSpacing = isHard ? config.hardLetterExtraSpacing : 0;
 
-          return (
-            <Text
-              key={i}
-              style={{
-                color: isDoubleColored ? config.doubleLetterColor : config.textColor,
-                fontFamily: config.fontFamily,
-                fontSize: effectiveFontSize,
-                marginHorizontal: hardLetterSpacing,
-              }}
-            >
-              {ch}
-            </Text>
-          );
-        })}
-        {hasCustomScale && (
-          <View
+        return (
+          <Text
+            key={i}
             style={{
-              position: 'absolute',
-              top: -4,
-              right: -4,
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: '#2196F3',
-            }}
-          />
-        )}
-        {isCentered && (
-          <View
-            style={{
-              position: 'absolute',
-              bottom: -4,
-              left: 0,
-              right: 0,
-              height: 3,
-              backgroundColor: config.underlineColor,
-              borderRadius: 1.5,
-            }}
-          />
-        )}
+              color: isDoubleColored
+                ? config.doubleLetterColor
+                : config.textColor,
+              fontFamily: config.fontFamily,
+              fontSize: effectiveFontSize,
+              marginHorizontal: hardLetterSpacing,
+            }}>
+            {ch}
+          </Text>
+        );
+      })}
+      {hasCustomScale && <View style={wordStyles.customScaleIndicator} />}
+      {isCentered && <View style={underlineStyle} />}
     </Pressable>
   );
 });
@@ -270,12 +257,15 @@ export const Reader: React.FC<Props> = ({
           {renderedWords}
         </TextTicker>
       </View>
-      <Controller ref={controllerRef} speed={speed} maxSpeed={config.maxScrollSpeed} onReset={() => tickerRef.current?.reset()} />
-      <Text 
-            style={{justifyContent: 'center', opacity: 0.6, color: config.textColor, textAlign: 'center', paddingTop: 20}}
-          >
-            TAP any word to select it (blue highlight), then PINCH to adjust its letter spacing. Double-TAP to reset the font-size.
-          </Text>
+      <Controller
+        ref={controllerRef}
+        speed={speed}
+        maxSpeed={config.maxScrollSpeed}
+        onReset={() => tickerRef.current?.reset()}
+      />
+      <Text style={[styles.helpText, {color: config.textColor}]}>
+        {HELP_TEXT.READER_INSTRUCTIONS}
+      </Text>
     </Pressable>
   );
 };
@@ -291,11 +281,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderTopWidth: 2,
     borderBottomWidth: 2,
-    borderWidth: 1, 
-    borderColor: '#ddd', 
-    borderRadius: 8, 
-    backgroundColor: '#FAFAFA'
-  }
+    borderWidth: 1,
+    borderColor: UI_COLORS.BORDER,
+    borderRadius: 8,
+    backgroundColor: UI_COLORS.INPUT_BACKGROUND,
+  },
+  helpText: {
+    justifyContent: 'center',
+    opacity: 0.6,
+    textAlign: 'center',
+    paddingTop: 20,
+  },
+});
+
+const wordStyles = StyleSheet.create({
+  wordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: UI_COLORS.TRANSPARENT,
+    borderRadius: 4,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  wordContainerSelected: {
+    backgroundColor: UI_COLORS.SELECTION_BACKGROUND,
+  },
+  customScaleIndicator: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: UI_COLORS.SCALE_INDICATOR,
+  },
+  underline: {
+    position: 'absolute',
+    bottom: -4,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderRadius: 1.5,
+  },
 });
 
 export default Reader;

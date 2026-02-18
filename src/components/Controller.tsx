@@ -1,7 +1,18 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet, Pressable, LayoutChangeEvent, useWindowDimensions } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, clamp, SharedValue } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import React, {forwardRef, useImperativeHandle, useState} from 'react';
+import {
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Animated, {
+  SharedValue,
+  clamp,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 
 type ControllerProps = {
   speed: SharedValue<number>;
@@ -89,14 +100,13 @@ const Controller = forwardRef<ControllerHandle, ControllerProps>(({ speed, maxSp
       </Pressable>
 
       <View
-        style={[styles.sliderContainer, isWide && { maxWidth: MAX_SLIDER_WIDTH_WIDE }]}
-        onLayout={handleSliderLayout}
-      >
+        style={[styles.sliderContainer, isWide && {maxWidth: MAX_SLIDER_WIDTH_WIDE}]}
+        onLayout={handleSliderLayout}>
         <GestureDetector gesture={doubleTapGesture}>
-          <Animated.View style={{flex: 1, justifyContent: 'center'}}>
+          <Animated.View style={styles.gestureContainer}>
             <View style={styles.track} />
             {sliderWidth > 0 && (
-              <View style={[styles.centerMarker, { left: sliderWidth / 2 - 1 }]} />
+              <View style={[styles.centerMarker, {left: sliderWidth / 2 - 1}]} />
             )}
 
             <GestureDetector gesture={panGesture}>
@@ -148,6 +158,10 @@ const styles = StyleSheet.create({
   sliderContainer: {
     flex: 1,
     height: 40,
+    justifyContent: 'center',
+  },
+  gestureContainer: {
+    flex: 1,
     justifyContent: 'center',
   },
   track: {
