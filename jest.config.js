@@ -11,15 +11,34 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
   ],
-  // Coverage thresholds - commented out while building test infrastructure
-  // coverageThreshold: {
-  //   global: {
-  //     statements: 60,
-  //     branches: 50,
-  //     functions: 60,
-  //     lines: 60,
-  //   },
-  // },
+  // Coverage thresholds
+  // Goals: 90%+ for utils, 60%+ for components, 80%+ for hooks
+  coverageThreshold: {
+    global: {
+      statements: 60,
+      branches: 50,
+      functions: 60,
+      lines: 60,
+    },
+    './src/utils/**/*.{ts,tsx}': {
+      statements: 90,
+      branches: 80,
+      functions: 90,
+      lines: 90,
+    },
+    './src/hooks/**/*.{ts,tsx}': {
+      statements: 80,
+      branches: 70,
+      functions: 80,
+      lines: 80,
+    },
+    './src/components/**/*.{ts,tsx}': {
+      statements: 60,
+      branches: 50,
+      functions: 60,
+      lines: 60,
+    },
+  },
   coverageReporters: ['text', 'lcov', 'html'],
   testMatch: [
     '**/__tests__/**/*.test.{ts,tsx}',
