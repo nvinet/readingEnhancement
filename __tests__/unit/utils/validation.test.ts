@@ -14,7 +14,7 @@ import {
   sanitizeFontSize,
   sanitizeSpacing,
   sanitizeScrollSpeed,
-} from '../../src/utils/validation';
+} from '../../../src/utils/validation';
 
 describe('validateHexColor', () => {
   it('should accept valid 6-digit hex colors', () => {

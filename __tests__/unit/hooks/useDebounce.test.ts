@@ -3,7 +3,7 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { useDebounce } from '../../src/hooks/useDebounce';
+import { useDebounce } from '../../../src/hooks/useDebounce';
 
 describe('useDebounce', () => {
   beforeEach(() => {

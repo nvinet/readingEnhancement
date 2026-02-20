@@ -5,7 +5,7 @@
 
 import React from 'react';
 import {render, fireEvent} from '@testing-library/react-native';
-import ColorPickerField from '../../src/components/ColorPickerField';
+import ColorPickerField from '../../../src/components/ColorPickerField';
 
 // Mock the reanimated-color-picker module
 jest.mock('reanimated-color-picker', () => ({

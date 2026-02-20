@@ -4,6 +4,8 @@
  * Run with: detox test --configuration ios.sim.debug
  */
 
+import { device, element, by, expect, waitFor } from 'detox';
+
 describe('Reading Enhancement App - E2E', () => {
   beforeAll(async () => {
     await device.launchApp({
