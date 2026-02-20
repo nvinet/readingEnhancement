@@ -34,17 +34,17 @@ The Reading Enhancement app uses **Jest** and **React Native Testing Library** f
 
 ```
 __tests__/
-├── components/          # Component tests
-│   └── ColorPickerField.test.tsx
-├── hooks/               # Custom hook tests
-│   └── useDebounce.test.ts
-├── utils/               # Utility function tests
-│   └── validation.test.ts
+├── unit/          # Component tests
+│   └── components/          # Component tests
+│       └── (future tests here)
+│   └── hooks/               # Custom hook tests
+│       └── (future tests here)
+│   └── utils/               # Utility function tests
+│       └── (future tests here)
 ├── integration/         # Integration tests
 │   └── (future tests here)
-├── App.test.tsx         # Main App component tests
-├── Reader.test.tsx      # Reader component tests
-└── TextTicker.test.tsx  # TextTicker component tests
+├── integration/         # end to end tests
+│   └── (future tests here)
 ```
 
 ### File Naming Conventions
