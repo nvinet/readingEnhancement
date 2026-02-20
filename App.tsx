@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {
   Alert,
   Keyboard,
@@ -27,6 +27,9 @@ import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import Reader, {ReaderConfig} from './src/components/Reader';
 import SettingsButton from './src/components/SettingsButton';
 import SidePanel from './src/components/SidePanel';
+import {useDebounce} from './src/hooks/useDebounce';
+import {appReducer} from './src/reducers/appReducer';
+import {AppState} from './src/types/state';
 import {
   DEBOUNCE_DELAY_MS,
   DEFAULT_BASE_FONT_SIZE,
@@ -37,9 +40,7 @@ import {
   INPUT_ANIMATION_DURATION_MS,
   INPUT_FIELD_HEIGHT,
   INPUT_MAX_HEIGHT,
-  MAX_SCROLL_SPEED,
   MIN_BASE_FONT_SIZE,
-  MIN_SCROLL_SPEED,
 } from './src/constants/app';
 import {
   READER_COLORS,
@@ -75,6 +76,28 @@ function showSuccessAlert(message: string): void {
   Alert.alert('Success', message, [{text: 'OK', style: 'default'}]);
 }
 
+/**
+ * Initial application state
+ * Used as the default state for the reducer
+ */
+const initialState: AppState = {
+  config: {
+    fontFamily: undefined,
+    backgroundColor: READER_COLORS.BACKGROUND,
+    textColor: READER_COLORS.TEXT,
+    doubleLetterColor: READER_COLORS.DOUBLE_LETTER,
+    hardLetters: DEFAULT_HARD_LETTERS,
+    hardLetterExtraSpacing: DEFAULT_HARD_LETTER_SPACING,
+    wordSpacing: DEFAULT_WORD_SPACING,
+    baseFontSize: DEFAULT_BASE_FONT_SIZE,
+    maxScrollSpeed: DEFAULT_MAX_SCROLL_SPEED,
+    underlineColor: READER_COLORS.UNDERLINE,
+  },
+  brightness: 0, // overlay darkness 0-1
+  perWordFontSizeOverrides: {},
+  selectedWordIndex: null,
+};
+
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -85,12 +108,57 @@ function App() {
     [isDarkMode]
   );
 
+  // Main state management with useReducer
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // UI-only state (not in reducer)
   const [inputText, setInputText] = useState<string>('');
-  const [perWordFontSizeOverrides, setPerWordFontSizeOverrides] = useState<Record<number, number>>({});
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState<boolean>(false);
   const [isInputExpanded, setIsInputExpanded] = useState<boolean>(true);
   const inputExpandProgress = useSharedValue(1);
+
+  // Live values for sliders (update immediately for responsive UI)
+  const [liveWordSpacing, setLiveWordSpacing] = useState(state.config.wordSpacing);
+  const [liveHardLetterSpacing, setLiveHardLetterSpacing] = useState(state.config.hardLetterExtraSpacing);
+  const [liveBaseFontSize, setLiveBaseFontSize] = useState(state.config.baseFontSize);
+  const [liveMaxScrollSpeed, setLiveMaxScrollSpeed] = useState(state.config.maxScrollSpeed);
+  const [liveBrightness, setLiveBrightness] = useState(state.brightness);
+
+  // Debounced values (update reducer after delay)
+  const debouncedWordSpacing = useDebounce(liveWordSpacing, DEBOUNCE_DELAY_MS);
+  const debouncedHardLetterSpacing = useDebounce(liveHardLetterSpacing, DEBOUNCE_DELAY_MS);
+  const debouncedBaseFontSize = useDebounce(liveBaseFontSize, DEBOUNCE_DELAY_MS);
+  const debouncedMaxScrollSpeed = useDebounce(liveMaxScrollSpeed, DEBOUNCE_DELAY_MS);
+  const debouncedBrightness = useDebounce(liveBrightness, DEBOUNCE_DELAY_MS);
+
+  const textInputRef = useRef<TextInput>(null);
+
+  // Sync debounced values to reducer
+  useEffect(() => {
+    dispatch({ type: 'SET_WORD_SPACING', payload: debouncedWordSpacing });
+  }, [debouncedWordSpacing]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_HARD_LETTER_SPACING', payload: debouncedHardLetterSpacing });
+  }, [debouncedHardLetterSpacing]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_BASE_FONT_SIZE', payload: debouncedBaseFontSize });
+  }, [debouncedBaseFontSize]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_MAX_SCROLL_SPEED', payload: debouncedMaxScrollSpeed });
+  }, [debouncedMaxScrollSpeed]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_BRIGHTNESS', payload: debouncedBrightness });
+    try {
+      setNativeBrightness(debouncedBrightness);
+    } catch (e) {
+      logError('UpdateBrightness', e);
+      // Non-critical error - brightness overlay still works, native setting failed
+    }
+  }, [debouncedBrightness]);
 
   const toggleInput = useCallback((): void => {
     const expanding = !isInputExpanded;
@@ -104,103 +172,34 @@ function App() {
     opacity: inputExpandProgress.value,
     overflow: 'hidden' as const,
   }));
-  const [config, setConfig] = useState<ReaderConfig>({
-    fontFamily: undefined,
-    backgroundColor: READER_COLORS.BACKGROUND,
-    textColor: READER_COLORS.TEXT,
-    doubleLetterColor: READER_COLORS.DOUBLE_LETTER,
-    hardLetters: DEFAULT_HARD_LETTERS,
-    hardLetterExtraSpacing: DEFAULT_HARD_LETTER_SPACING,
-    wordSpacing: DEFAULT_WORD_SPACING,
-    baseFontSize: DEFAULT_BASE_FONT_SIZE,
-    maxScrollSpeed: DEFAULT_MAX_SCROLL_SPEED,
-    underlineColor: READER_COLORS.UNDERLINE,
-  });
-  const [brightness, setBrightness] = useState<number>(0); // overlay darkness 0-1
-  
-  // Separate state for live slider values (used during dragging)
-  const [liveValues, setLiveValues] = useState({
-    hardLetterExtraSpacing: config.hardLetterExtraSpacing,
-    wordSpacing: config.wordSpacing,
-    baseFontSize: config.baseFontSize,
-    maxScrollSpeed: config.maxScrollSpeed,
-    brightness: brightness,
-  });
-
-  // Refs for debounce timers
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const textInputRef = useRef<TextInput>(null);
-
-  // Debounced update function for config
-  const debouncedUpdateConfig = useCallback((key: string, value: number, updateFn: () => void): void => {
-    // Clear existing timer for this key
-    if (debounceTimers.current[key]) {
-      clearTimeout(debounceTimers.current[key]);
-    }
-    
-    // Set new timer
-    debounceTimers.current[key] = setTimeout(() => {
-      updateFn();
-      delete debounceTimers.current[key];
-    }, DEBOUNCE_DELAY_MS);
-  }, []);
-
-  function updatePerWordFontSize(index: number, delta: number): void {
-    setPerWordFontSizeOverrides(prev => {
-      const current = prev[index] || 0;
-      const next = Math.max(0, current + delta);
-      return {...prev, [index]: next};
-    });
-  }
-
-  function resetSelectedWordScale(): void {
-    if (selectedIndex == null) return;
-    setPerWordFontSizeOverrides(prev => {
-      const next = {...prev};
-      delete next[selectedIndex!];
-      return next;
-    });
-  }
-
-  function resetWordScaleByIndex(index: number): void {
-    setPerWordFontSizeOverrides(prev => {
-      const next = {...prev};
-      delete next[index];
-      return next;
-    });
-  }
-
-  function resetAllWordScales(): void {
-    setPerWordFontSizeOverrides({});
-  }
 
   const overlayStyle = useMemo(
     () => ({
-      backgroundColor: `rgba(0,0,0,${liveValues.brightness})`,
+      backgroundColor: `rgba(0,0,0,${liveBrightness})`,
       ...styles.overlay,
     }),
-    [liveValues.brightness]
+    [liveBrightness]
   );
 
-  // Memoized callbacks to prevent SidePanel re-renders
+  // Event handlers - now much simpler!
   const handleChangeFontFamily = useCallback((font: string | undefined): void => {
-    setConfig(prev => ({...prev, fontFamily: font}));
+    dispatch({ type: 'SET_FONT_FAMILY', payload: font });
   }, []);
 
   const handleChangeBackgroundColor = useCallback((c: string): void => {
-    setConfig(prev => ({...prev, backgroundColor: c}));
+    dispatch({ type: 'SET_BACKGROUND_COLOR', payload: c });
   }, []);
 
   const handleChangeTextColor = useCallback((c: string): void => {
-    setConfig(prev => ({...prev, textColor: c}));
+    dispatch({ type: 'SET_TEXT_COLOR', payload: c });
   }, []);
 
   const handleChangeDoubleLetterColor = useCallback((c: string): void => {
-    setConfig(prev => ({...prev, doubleLetterColor: c}));
+    dispatch({ type: 'SET_DOUBLE_LETTER_COLOR', payload: c });
   }, []);
 
   const handleChangeUnderlineColor = useCallback((c: string): void => {
-    setConfig(prev => ({...prev, underlineColor: c}));
+    dispatch({ type: 'SET_UNDERLINE_COLOR', payload: c });
   }, []);
 
   const handleChangeHardLetters = useCallback((letters: string): void => {
@@ -212,18 +211,8 @@ function App() {
         uniqueLetters.push(ch);
       }
     }
-    setConfig(prev => ({...prev, hardLetters: uniqueLetters.join('')}));
+    dispatch({ type: 'SET_HARD_LETTERS', payload: uniqueLetters.join('') });
   }, []);
-
-  const handleChangeHardLetterExtraSpacing = useCallback((v: number): void => {
-    const clampedValue = Math.max(0, v);
-    // Update live value immediately
-    setLiveValues(prev => ({...prev, hardLetterExtraSpacing: clampedValue}));
-    // Debounce config update
-    debouncedUpdateConfig('hardLetterExtraSpacing', clampedValue, () => {
-      setConfig(prev => ({...prev, hardLetterExtraSpacing: clampedValue}));
-    });
-  }, [debouncedUpdateConfig]);
 
   // Load saved configuration and brightness on start
   useEffect(() => {
@@ -233,22 +222,22 @@ function App() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && typeof parsed === 'object') {
+            // Load into reducer
+            dispatch({ type: 'LOAD_SAVED_STATE', payload: parsed });
+
+            // Sync live values to loaded state
             if (parsed.config) {
-              setConfig((prev) => ({...prev, ...parsed.config}));
-              setLiveValues((prev) => ({
-                ...prev,
-                hardLetterExtraSpacing: parsed.config.hardLetterExtraSpacing ?? prev.hardLetterExtraSpacing,
-                wordSpacing: parsed.config.wordSpacing ?? prev.wordSpacing,
-                baseFontSize: parsed.config.baseFontSize ?? prev.baseFontSize,
-                maxScrollSpeed: parsed.config.maxScrollSpeed ?? prev.maxScrollSpeed,
-              }));
+              setLiveWordSpacing(parsed.config.wordSpacing ?? liveWordSpacing);
+              setLiveHardLetterSpacing(parsed.config.hardLetterExtraSpacing ?? liveHardLetterSpacing);
+              setLiveBaseFontSize(parsed.config.baseFontSize ?? liveBaseFontSize);
+              setLiveMaxScrollSpeed(parsed.config.maxScrollSpeed ?? liveMaxScrollSpeed);
             }
+
             if (typeof parsed.brightness === 'number') {
-              setBrightness(parsed.brightness);
-              setLiveValues((prev) => ({...prev, brightness: parsed.brightness}));
-              try { 
-                setNativeBrightness(parsed.brightness); 
-              } catch (e) { 
+              setLiveBrightness(parsed.brightness);
+              try {
+                setNativeBrightness(parsed.brightness);
+              } catch (e) {
                 logError('SetBrightness', e);
                 // Non-critical error - brightness setting failed but app continues
               }
@@ -263,13 +252,14 @@ function App() {
         );
       }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const handleSaveConfiguration = useCallback(async (): Promise<void> => {
     try {
       const payload = JSON.stringify({
-        config,
-        brightness,
+        config: state.config,
+        brightness: state.brightness,
       });
       await AsyncStorage.setItem(STORAGE_KEY_READER_CONFIG, payload);
       showSuccessAlert(ALERTS.SUCCESS.CONFIGURATION_SAVED);
@@ -280,50 +270,7 @@ function App() {
         ALERTS.ERROR.SAVE_FAILED.message
       );
     }
-  }, [config, brightness]);
-
-  const handleChangeWordSpacing = useCallback((v: number): void => {
-    const clampedValue = Math.max(0, v);
-    // Update live value immediately
-    setLiveValues(prev => ({...prev, wordSpacing: clampedValue}));
-    // Debounce config update
-    debouncedUpdateConfig('wordSpacing', clampedValue, () => {
-      setConfig(prev => ({...prev, wordSpacing: clampedValue}));
-    });
-  }, [debouncedUpdateConfig]);
-
-  const handleChangeBaseFontSize = useCallback((v: number): void => {
-    const clampedValue = Math.max(MIN_BASE_FONT_SIZE, v);
-    // Update live value immediately
-    setLiveValues(prev => ({...prev, baseFontSize: clampedValue}));
-    // Debounce config update
-    debouncedUpdateConfig('baseFontSize', clampedValue, () => {
-      setConfig(prev => ({...prev, baseFontSize: clampedValue}));
-    });
-  }, [debouncedUpdateConfig]);
-
-  const handleChangeMaxScrollSpeed = useCallback((v: number): void => {
-    const clampedValue = Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, v));
-    setLiveValues(prev => ({...prev, maxScrollSpeed: clampedValue}));
-    debouncedUpdateConfig('maxScrollSpeed', clampedValue, () => {
-      setConfig(prev => ({...prev, maxScrollSpeed: clampedValue}));
-    });
-  }, [debouncedUpdateConfig]);
-
-  const handleChangeBrightness = useCallback((v: number): void => {
-    // Update live value immediately
-    setLiveValues(prev => ({...prev, brightness: v}));
-    // Debounce brightness and native updates
-    debouncedUpdateConfig('brightness', v, () => {
-      setBrightness(v);
-      try { 
-        setNativeBrightness(v); 
-      } catch (e) { 
-        logError('UpdateBrightness', e);
-        // Non-critical error - brightness overlay still works, native setting failed
-      }
-    });
-  }, [debouncedUpdateConfig]);
+  }, [state.config, state.brightness]);
 
   const toggleInputButtonStyle = useMemo(
     () => [
@@ -334,13 +281,13 @@ function App() {
   );
 
   const containerStyle = useMemo(
-    () => [styles.container, {backgroundColor: config.backgroundColor}],
-    [config.backgroundColor]
+    () => [styles.container, {backgroundColor: state.config.backgroundColor}],
+    [state.config.backgroundColor]
   );
 
   const safeAreaStyle = useMemo(
-    () => [styles.safeArea, {backgroundColor: config.backgroundColor}],
-    [config.backgroundColor]
+    () => [styles.safeArea, {backgroundColor: state.config.backgroundColor}],
+    [state.config.backgroundColor]
   );
 
   return (
@@ -373,29 +320,34 @@ function App() {
               <View style={styles.readerContainer}>
                 <Reader
                   text={inputText}
-                  config={config}
-                  perWordFontSizeOverrides={perWordFontSizeOverrides}
+                  config={state.config}
+                  perWordFontSizeOverrides={state.perWordFontSizeOverrides}
                   onSelectWordIndex={(idx) => {
                     if (idx === null) {
                       Keyboard.dismiss();
                     }
-                    setSelectedIndex(idx);
+                    dispatch({ type: 'SELECT_WORD', payload: idx });
                   }}
                   onAdjustSelectedWordScale={(delta) => {
-                    if (selectedIndex != null)
-                      updatePerWordFontSize(selectedIndex, delta);
+                    if (state.selectedWordIndex != null) {
+                      dispatch({
+                        type: 'ADJUST_WORD_FONT_SIZE',
+                        payload: { index: state.selectedWordIndex, delta },
+                      });
+                    }
                   }}
-                  onAdjustFontSize={(delta) =>
-                    setConfig((prev) => ({
-                      ...prev,
-                      baseFontSize: Math.max(
-                        MIN_BASE_FONT_SIZE,
-                        prev.baseFontSize + delta
-                      ),
-                    }))
-                  }
-                  onResetSelectedWordScale={resetSelectedWordScale}
-                  onResetWordScaleByIndex={resetWordScaleByIndex}
+                  onAdjustFontSize={(delta) => {
+                    const newSize = state.config.baseFontSize + delta;
+                    setLiveBaseFontSize(newSize);
+                  }}
+                  onResetSelectedWordScale={() => {
+                    if (state.selectedWordIndex != null) {
+                      dispatch({ type: 'RESET_WORD_FONT_SIZE', payload: state.selectedWordIndex });
+                    }
+                  }}
+                  onResetWordScaleByIndex={(index) => {
+                    dispatch({ type: 'RESET_WORD_FONT_SIZE', payload: index });
+                  }}
                 />
               </View>
               <View style={overlayStyle} />
@@ -416,36 +368,36 @@ function App() {
             }}
           />
 
-        <SidePanel
-          visible={isPanelVisible}
-          onClose={() => setIsPanelVisible(false)}
-          fontFamily={config.fontFamily}
-          onChangeFontFamily={handleChangeFontFamily}
-          backgroundColor={config.backgroundColor}
-          onChangeBackgroundColor={handleChangeBackgroundColor}
-          textColor={config.textColor}
-          onChangeTextColor={handleChangeTextColor}
-          doubleLetterColor={config.doubleLetterColor}
-          onChangeDoubleLetterColor={handleChangeDoubleLetterColor}
-          underlineColor={config.underlineColor}
-          onChangeUnderlineColor={handleChangeUnderlineColor}
-          hardLetters={config.hardLetters}
-          onChangeHardLetters={handleChangeHardLetters}
-          hardLetterExtraSpacing={liveValues.hardLetterExtraSpacing}
-          onChangeHardLetterExtraSpacing={handleChangeHardLetterExtraSpacing}
-          wordSpacing={liveValues.wordSpacing}
-          onChangeWordSpacing={handleChangeWordSpacing}
-          baseFontSize={liveValues.baseFontSize}
-          onChangeBaseFontSize={handleChangeBaseFontSize}
-          maxScrollSpeed={liveValues.maxScrollSpeed}
-          onChangeMaxScrollSpeed={handleChangeMaxScrollSpeed}
-          brightness={liveValues.brightness}
-          onChangeBrightness={handleChangeBrightness}
-          onSave={handleSaveConfiguration}
-          onResetAllWordScales={resetAllWordScales}
-        />
-      </SafeAreaView>
-    </GestureHandlerRootView>
+          <SidePanel
+            visible={isPanelVisible}
+            onClose={() => setIsPanelVisible(false)}
+            fontFamily={state.config.fontFamily}
+            onChangeFontFamily={handleChangeFontFamily}
+            backgroundColor={state.config.backgroundColor}
+            onChangeBackgroundColor={handleChangeBackgroundColor}
+            textColor={state.config.textColor}
+            onChangeTextColor={handleChangeTextColor}
+            doubleLetterColor={state.config.doubleLetterColor}
+            onChangeDoubleLetterColor={handleChangeDoubleLetterColor}
+            underlineColor={state.config.underlineColor}
+            onChangeUnderlineColor={handleChangeUnderlineColor}
+            hardLetters={state.config.hardLetters}
+            onChangeHardLetters={handleChangeHardLetters}
+            hardLetterExtraSpacing={liveHardLetterSpacing}
+            onChangeHardLetterExtraSpacing={setLiveHardLetterSpacing}
+            wordSpacing={liveWordSpacing}
+            onChangeWordSpacing={setLiveWordSpacing}
+            baseFontSize={liveBaseFontSize}
+            onChangeBaseFontSize={setLiveBaseFontSize}
+            maxScrollSpeed={liveMaxScrollSpeed}
+            onChangeMaxScrollSpeed={setLiveMaxScrollSpeed}
+            brightness={liveBrightness}
+            onChangeBrightness={setLiveBrightness}
+            onSave={handleSaveConfiguration}
+            onResetAllWordScales={() => dispatch({ type: 'RESET_ALL_WORD_FONT_SIZES' })}
+          />
+        </SafeAreaView>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }
