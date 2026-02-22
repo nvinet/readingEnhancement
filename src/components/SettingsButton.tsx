@@ -10,6 +10,7 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({ onPress }) => {
     <Pressable
         onPress={onPress}
         style={styles.settingsButton}
+        testID="settings-button"
     >
         <View style={styles.button}>
             <View style={styles.line} />

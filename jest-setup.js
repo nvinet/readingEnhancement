@@ -12,8 +12,9 @@ jest.mock('react-native-worklets', () => ({
 // Mock react-native-reanimated with a custom simplified mock
 jest.mock('react-native-reanimated', () => {
   const View = require('react-native').View;
-  
-  return {
+
+  const reanimatedMock = {
+    __esModule: true,
     default: {
       Value: jest.fn(),
       event: jest.fn(),
@@ -52,7 +53,10 @@ jest.mock('react-native-reanimated', () => {
     runOnJS: jest.fn((fn) => fn),
     useFrameCallback: jest.fn(),
     cancelAnimation: jest.fn(),
+    clamp: jest.fn((value, min, max) => Math.min(Math.max(value, min), max)),
   };
+
+  return reanimatedMock;
 });
 
 // Mock react-native-gesture-handler
@@ -66,6 +70,7 @@ jest.mock('react-native-gesture-handler', () => {
     onFinalize: jest.fn().mockReturnThis(),
     onChange: jest.fn().mockReturnThis(),
     enabled: jest.fn().mockReturnThis(),
+    numberOfTaps: jest.fn().mockReturnThis(),
   });
   
   return {
@@ -101,4 +106,18 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+
+// Mock reanimated-color-picker
+jest.mock('reanimated-color-picker', () => ({
+  __esModule: true,
+  default: ({ children, value, onCompleteJS }) => {
+    const React = require('react');
+    const { View } = require('react-native');
+    return React.createElement(View, { testID: 'color-picker' }, children);
+  },
+  Preview: () => null,
+  Panel1: () => null,
+  HueSlider: () => null,
+  OpacitySlider: () => null,
 }));

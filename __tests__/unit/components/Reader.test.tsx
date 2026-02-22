@@ -2,10 +2,6 @@
  * @format
  */
 
-import React from 'react';
-import ReactTestRenderer from 'react-test-renderer';
-import Reader, { ReaderConfig } from '../src/components/Reader';
-
 // Extract the pure functions from Reader component for testing
 // Note: These are not exported, so we recreate them here for testing
 function splitIntoWords(text: string): string[] {
