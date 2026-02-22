@@ -108,6 +108,36 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
+// Mock expo-brightness
+jest.mock('expo-brightness', () => ({
+  getBrightnessAsync: jest.fn(() => Promise.resolve(0.5)),
+  setBrightnessAsync: jest.fn(() => Promise.resolve()),
+  getSystemBrightnessAsync: jest.fn(() => Promise.resolve(0.5)),
+  setSystemBrightnessAsync: jest.fn(() => Promise.resolve()),
+  useSystemBrightnessAsync: jest.fn(() => Promise.resolve()),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  BrightnessMode: { UNKNOWN: 0, AUTOMATIC: 1, MANUAL: 2 },
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
+
+// Mock expo-splash-screen
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn(() => Promise.resolve()),
+  hideAsync: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock expo-font
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn(() => Promise.resolve()),
+  isLoaded: jest.fn(() => true),
+}));
+
+// Mock expo-status-bar
+jest.mock('expo-status-bar', () => ({
+  StatusBar: () => null,
+}));
+
 // Mock reanimated-color-picker
 jest.mock('reanimated-color-picker', () => ({
   __esModule: true,

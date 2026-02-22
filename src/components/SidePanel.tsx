@@ -1,6 +1,5 @@
 import React, {useState} from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -125,11 +124,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   ];
 
   return (
-    <Modal
-      visible={true}
-      transparent={true}
-      animationType="none"
-      onRequestClose={onClose}>
+    <View style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]} pointerEvents={visible ? 'auto' : 'none'}>
       <View style={styles.modalContainer}>
         {/* Backdrop - tap to close */}
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
@@ -264,7 +259,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           </View>
         </Animated.View>
       </View>
-    </Modal>
+    </View>
     
   );
 };

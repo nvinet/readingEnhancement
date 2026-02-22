@@ -2,7 +2,7 @@ module.exports = {
   preset: 'react-native',
   setupFilesAfterEnv: ['<rootDir>/jest-setup.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-native-reanimated|react-native-gesture-handler|@react-native-async-storage|react-native-safe-area-context|react-native-worklets|reanimated-color-picker)/)',
+    'node_modules/(?!(react-native|@react-native|react-native-reanimated|react-native-gesture-handler|@react-native-async-storage|react-native-safe-area-context|react-native-worklets|reanimated-color-picker|expo|expo-brightness|expo-font|expo-splash-screen|expo-status-bar|expo-modules-core|expo-constants|expo-file-system|expo-asset)/)',
   ],
   collectCoverage: false, // Set to true to collect coverage by default
   collectCoverageFrom: [

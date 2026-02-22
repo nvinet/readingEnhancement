@@ -23,8 +23,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
+import * as Brightness from 'expo-brightness';
+import * as SplashScreen from 'expo-splash-screen';
+import { loadFonts } from './src/utils/fonts';
 
-import Reader, {ReaderConfig} from './src/components/Reader';
+import Reader from './src/components/Reader';
 import SettingsButton from './src/components/SettingsButton';
 import SidePanel from './src/components/SidePanel';
 import {useDebounce} from './src/hooks/useDebounce';
@@ -40,7 +43,6 @@ import {
   INPUT_ANIMATION_DURATION_MS,
   INPUT_FIELD_HEIGHT,
   INPUT_MAX_HEIGHT,
-  MIN_BASE_FONT_SIZE,
 } from './src/constants/app';
 import {
   READER_COLORS,
@@ -131,6 +133,8 @@ function App() {
   const debouncedMaxScrollSpeed = useDebounce(liveMaxScrollSpeed, DEBOUNCE_DELAY_MS);
   const debouncedBrightness = useDebounce(liveBrightness, DEBOUNCE_DELAY_MS);
 
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
   const textInputRef = useRef<TextInput>(null);
 
   // Sync debounced values to reducer
@@ -151,14 +155,34 @@ function App() {
   }, [debouncedMaxScrollSpeed]);
 
   useEffect(() => {
-    dispatch({ type: 'SET_BRIGHTNESS', payload: debouncedBrightness });
-    try {
-      setNativeBrightness(debouncedBrightness);
-    } catch (e) {
-      logError('UpdateBrightness', e);
-      // Non-critical error - brightness overlay still works, native setting failed
-    }
+    (async () => {
+      const { status } = await Brightness.requestPermissionsAsync();
+      if (status === 'granted') {
+        dispatch({ type: 'SET_BRIGHTNESS', payload: debouncedBrightness });
+        try {
+          setNativeBrightness(debouncedBrightness);
+        } catch (e) {
+          logError('UpdateBrightness', e);
+          // Non-critical error - brightness overlay still works, native setting failed
+        }
+      }
+    })();
   }, [debouncedBrightness]);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await loadFonts();
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setFontsLoaded(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
 
   const toggleInput = useCallback((): void => {
     const expanding = !isInputExpanded;
@@ -234,13 +258,18 @@ function App() {
             }
 
             if (typeof parsed.brightness === 'number') {
-              setLiveBrightness(parsed.brightness);
-              try {
-                setNativeBrightness(parsed.brightness);
-              } catch (e) {
-                logError('SetBrightness', e);
-                // Non-critical error - brightness setting failed but app continues
-              }
+              (async () => {
+                const { status } = await Brightness.requestPermissionsAsync();
+                if (status === 'granted') {
+                  setLiveBrightness(parsed.brightness);
+                  try {
+                    setNativeBrightness(parsed.brightness);
+                  } catch (e) {
+                    logError('SetBrightness', e);
+                    // Non-critical error - brightness setting failed but app continues
+                  }
+                }
+              })();
             }
           }
         }
@@ -289,6 +318,10 @@ function App() {
     () => [styles.safeArea, {backgroundColor: state.config.backgroundColor}],
     [state.config.backgroundColor]
   );
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>

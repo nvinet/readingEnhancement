@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, clamp } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, clamp, runOnJS } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {scheduleOnRN} from 'react-native-worklets';
 
 type MemoizedSliderFieldProps = {
   label: string;
@@ -43,7 +42,7 @@ const MemoizedSliderField = React.memo(({
     .onUpdate((event) => {
       const newProgress = clamp(startValue.value + event.translationX, 0, SLIDER_WIDTH);
       sliderProgress.value = newProgress;
-      scheduleOnRN(updateValue, newProgress);
+      runOnJS(updateValue)(newProgress);
     });
 
   const thumbStyle = useAnimatedStyle(() => {
