@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { StyleSheet, View, LayoutChangeEvent, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, LayoutChangeEvent, useWindowDimensions, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, clamp, runOnJS, useFrameCallback, SharedValue } from 'react-native-reanimated';
 
@@ -20,6 +20,7 @@ interface TextTickerProps {
 const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, style, onPinchStart, onPinchUpdate, onPinchEnd, speed, scrollX }, ref) => {
   const [contentWidth, setContentWidth] = useState(0);
   const { width: containerWidth } = useWindowDimensions();
+  const [isPanDisabled, setIsPanDisabled] = useState(false);
 
   const savedTranslateX = useSharedValue(0);
   const contentWidthSV = useSharedValue(0);
@@ -60,11 +61,13 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
       savedTranslateX.value = scrollX.value;
     })
     .onUpdate((event) => {
-      if (contentWidth <= containerWidth) {
+      // Fix race condition: use shared values instead of state variables
+      // State (contentWidth, containerWidth) may not be in sync on UI thread
+      if (contentWidthSV.value <= containerWidthSV.value) {
         return;
       }
-      const center = containerWidth / 2;
-      const minTranslate = center - contentWidth;
+      const center = containerWidthSV.value / 2;
+      const minTranslate = center - contentWidthSV.value;
       const maxTranslate = center;
       scrollX.value = clamp(savedTranslateX.value + event.translationX, minTranslate, maxTranslate);
     });
@@ -100,10 +103,19 @@ const TextTicker = forwardRef<TextTickerHandle, TextTickerProps>(({ children, st
             const w = e.nativeEvent.layout.width;
             setContentWidth(w);
             contentWidthSV.value = w;
+            // Update pan disabled state for user feedback
+            setIsPanDisabled(w <= containerWidth);
           }}
         >
           {children}
         </Animated.View>
+        {isPanDisabled && (
+          <View style={styles.disabledOverlay}>
+            <Text style={styles.disabledText}>
+              Text too short to scroll
+            </Text>
+          </View>
+        )}
       </View>
     </GestureDetector>
   );
@@ -122,6 +134,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: 20,
+  },
+  disabledOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  disabledText: {
+    color: '#fff',
+    fontSize: 10,
+    opacity: 0.8,
   },
 });
 

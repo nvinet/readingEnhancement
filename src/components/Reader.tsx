@@ -14,6 +14,7 @@ import {
 } from '../constants/app';
 import {UI_COLORS} from '../constants/colors';
 import {HELP_TEXT} from '../constants/messages';
+import {clampScale} from '../utils/gestureHelpers';
 
 export type ReaderConfig = {
   fontFamily: string | undefined;
@@ -198,8 +199,10 @@ export const Reader: React.FC<Props> = ({
   };
 
   const handlePinchUpdate = (scale: number) => {
-    const delta = scale - lastScale.current;
-    lastScale.current = scale;
+    // Clamp scale to prevent extreme values (0.1x to 5x)
+    const clampedScale = clampScale(scale);
+    const delta = clampedScale - lastScale.current;
+    lastScale.current = clampedScale;
     
     if (selectedWordIndex !== null) {
       if (onAdjustSelectedWordScale) {
