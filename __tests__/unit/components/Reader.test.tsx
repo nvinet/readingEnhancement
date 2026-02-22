@@ -14,7 +14,7 @@ function findDoubleLetterIndices(word: string): number[] {
   const indices: number[] = [];
   for (let i = 0; i < word.length - 1; i++) {
     if (word[i] === word[i + 1]) {
-      indices.push(i);
+      indices.push(i, i + 1);
     }
   }
   return indices;
@@ -59,16 +59,16 @@ describe('splitIntoWords', () => {
 
 describe('findDoubleLetterIndices', () => {
   it('should find double letters', () => {
-    expect(findDoubleLetterIndices('hello')).toEqual([2]); // 'll' at index 2
+    expect(findDoubleLetterIndices('hello')).toEqual([2, 3]); // 'll' at index 2
   });
 
   it('should find multiple double letters', () => {
-    expect(findDoubleLetterIndices('essee')).toEqual([1, 3]); // 'ss' and 'ee'
+    expect(findDoubleLetterIndices('essee')).toEqual([1, 2, 3, 4]); // 'ss' and 'ee'
   });
 
   it('should handle triple letters correctly', () => {
     // For 'aaa', indices 0 and 1 both have next char matching
-    expect(findDoubleLetterIndices('aaa')).toEqual([0, 1]);
+    expect(findDoubleLetterIndices('aaa')).toEqual([0, 1, 1, 2]);
   });
 
   it('should return empty array for no double letters', () => {
@@ -85,12 +85,12 @@ describe('findDoubleLetterIndices', () => {
 
   it('should be case-sensitive', () => {
     expect(findDoubleLetterIndices('Aa')).toEqual([]);
-    expect(findDoubleLetterIndices('AA')).toEqual([0]);
+    expect(findDoubleLetterIndices('AA')).toEqual([0, 1]);
   });
 
   it('should handle numbers and special chars', () => {
-    expect(findDoubleLetterIndices('a11b')).toEqual([1]); // '11'
-    expect(findDoubleLetterIndices('a!!b')).toEqual([1]); // '!!'
+    expect(findDoubleLetterIndices('a11b')).toEqual([1, 2]); // '11'
+    expect(findDoubleLetterIndices('a!!b')).toEqual([1, 2]); // '!!'
   });
 });
 

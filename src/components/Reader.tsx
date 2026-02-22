@@ -50,7 +50,7 @@ function findDoubleLetterIndices(word: string): number[] {
   const indices: number[] = [];
   for (let i = 0; i < word.length - 1; i++) {
     if (word[i] === word[i + 1]) {
-      indices.push(i); // color the first of each pair
+      indices.push(i, i + 1); // color both letters of the pair
     }
   }
   return indices;
