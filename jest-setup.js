@@ -12,8 +12,9 @@ jest.mock('react-native-worklets', () => ({
 // Mock react-native-reanimated with a custom simplified mock
 jest.mock('react-native-reanimated', () => {
   const View = require('react-native').View;
-  
-  return {
+
+  const reanimatedMock = {
+    __esModule: true,
     default: {
       Value: jest.fn(),
       event: jest.fn(),
@@ -52,7 +53,10 @@ jest.mock('react-native-reanimated', () => {
     runOnJS: jest.fn((fn) => fn),
     useFrameCallback: jest.fn(),
     cancelAnimation: jest.fn(),
+    clamp: jest.fn((value, min, max) => Math.min(Math.max(value, min), max)),
   };
+
+  return reanimatedMock;
 });
 
 // Mock react-native-gesture-handler

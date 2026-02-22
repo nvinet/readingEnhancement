@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../../App';
 
@@ -57,16 +57,25 @@ describe('User Flows - Integration Tests', () => {
   });
 
   describe('Config Persistence', () => {
-    it('should persist configuration changes', async () => {
-      render(<App />);
-      
+    it('should persist configuration changes when user saves', async () => {
+      const { getByTestId, getByText } = render(<App />);
+
       await waitFor(() => {
         expect(AsyncStorage.getItem).toHaveBeenCalled();
       });
-      
+
+      // Open the settings panel
+      fireEvent.press(getByTestId('settings-button'));
+
+      // Press "Save Configuration" in the side panel
+      await waitFor(() => {
+        expect(getByText('Save Configuration')).toBeTruthy();
+      });
+      fireEvent.press(getByText('Save Configuration'));
+
       await waitFor(() => {
         expect(AsyncStorage.setItem).toHaveBeenCalled();
-      }, { timeout: 5000 });
+      });
     });
 
     it('should handle corrupted config gracefully', async () => {
