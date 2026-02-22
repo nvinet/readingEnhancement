@@ -1,25 +1,27 @@
-import {NativeModules, Platform} from 'react-native';
-
-type BrightnessModuleType = {
-  setBrightness: (value: number) => void;
-  getBrightness: () => Promise<number>;
-};
-
-const Native: Partial<BrightnessModuleType> = NativeModules.BrightnessModule || {};
+import * as Brightness from 'expo-brightness';
+import { Platform } from 'react-native';
 
 export async function getBrightness(): Promise<number> {
-  if (Platform.OS === 'ios' && typeof Native.getBrightness === 'function') {
-    return Native.getBrightness();
+  if (Platform.OS === 'ios') {
+    try {
+      return await Brightness.getBrightnessAsync();
+    } catch (error) {
+      console.error('Failed to get brightness:', error);
+      return 0;
+    }
   }
   return Promise.resolve(0);
 }
 
-export function setBrightness(value: number) {
-  if (Platform.OS === 'ios' && typeof Native.setBrightness === 'function') {
-    Native.setBrightness(Math.max(0, Math.min(1, value)));
+export async function setBrightness(value: number): Promise<void> {
+  if (Platform.OS === 'ios') {
+    try {
+      await Brightness.setBrightnessAsync(Math.max(0, Math.min(1, value)));
+    } catch (error) {
+      console.error('Failed to set brightness:', error);
+    }
   }
 }
-
 
 
 

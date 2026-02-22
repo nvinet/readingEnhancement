@@ -39,17 +39,6 @@
 	<string></string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
-	<key>UIAppFonts</key>
-	<array>
-		<string>OpenDyslexic-BoldItalic_2748562162.otf</string>
-		<string>OpenDyslexic-Bold_4192668054.otf</string>
-		<string>OpenDyslexic-Italic_2758667117.otf</string>
-		<string>OpenDyslexicAlta-BoldItalic_3501229432.otf</string>
-		<string>OpenDyslexicAlta-Bold_2996475932.otf</string>
-		<string>OpenDyslexicAlta-Italic_2636942835.otf</string>
-		<string>OpenDyslexicAlta-Regular_3900816240.otf</string>
-		<string>OpenDyslexicMono-Regular_1062049671.otf</string>
-	</array>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>1</integer>
